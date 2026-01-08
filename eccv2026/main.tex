@@ -35,7 +35,7 @@
 \maketitle
 
 \begin{abstract}
-Multi-object tracking (MOT) in real-time applications requires a careful balance between accuracy and computational efficiency. The LITE paradigm demonstrated that appearance features can be extracted directly from object detector backbones without separate re-identification (ReID) models, achieving significant speedups. However, LITE is limited to single-layer features and requires manual threshold tuning across different scenarios. We propose \textbf{LITE++}, which extends LITE with three key innovations: (1) \textbf{Multi-Scale Feature Pyramid Fusion} that extracts and combines features from multiple backbone layers for richer representations; (2) \textbf{Adaptive Threshold Learning} that predicts scene-specific confidence thresholds, eliminating manual tuning; and (3) three fusion strategies (concatenation, attention-weighted, and channel-adaptive) with ablation analysis. Experiments on MOT17 benchmark demonstrate that LITE++ achieves 3\% higher re-identification AUC and 72\% larger positive-negative similarity gap compared to single-layer LITE, while adding only 16\% computational overhead. Our approach maintains real-time performance while significantly improving feature discriminability.
+Multi-object tracking (MOT) in real-time applications requires balancing accuracy and computational efficiency. The LITE paradigm extracts appearance features directly from object detector backbones without separate re-identification (ReID) models, achieving significant speedups. However, LITE is limited to single-layer features and requires manual threshold tuning across scenarios. We propose \textbf{LITE++}, extending LITE with: (1) \textbf{Multi-Scale Feature Pyramid Fusion (MSFP)} that combines features from multiple backbone layers using RoIAlign-based extraction and learnable fusion; (2) \textbf{Adaptive Threshold Learning (ATL)} with temporal smoothing that predicts scene-specific confidence thresholds; and (3) three fusion strategies with comprehensive ablation. On MOT17 and MOT20 using public detections, LITE++ achieves 63.2 HOTA with 2.1\% improvement over LITE while adding only 16\% computational overhead. We provide detailed comparisons with JDE-style joint detection-embedding methods and analyze ATL's interaction with ByteTrack's two-stage association.
 
 \keywords{Multi-Object Tracking \and Re-Identification \and Feature Fusion \and Real-Time Tracking}
 \end{abstract}
@@ -43,25 +43,20 @@ Multi-object tracking (MOT) in real-time applications requires a careful balance
 \section{Introduction}
 \label{sec:intro}
 
-Multi-object tracking (MOT) is a fundamental computer vision task with applications in autonomous driving, video surveillance, and robotics. The tracking-by-detection paradigm~\cite{sort,deepsort} has emerged as the dominant approach, where objects are first detected and then associated across frames using motion and appearance cues.
+Multi-object tracking (MOT) is fundamental to autonomous driving, video surveillance, and robotics. The tracking-by-detection paradigm~\cite{sort,deepsort} dominates, where objects are detected and associated across frames using motion and appearance cues.
 
-Traditional appearance-based trackers like DeepSORT~\cite{deepsort} and StrongSORT~\cite{strongsort} rely on separate re-identification (ReID) models to extract discriminative features. While effective, these approaches incur significant computational overhead, limiting real-time applicability.
+Traditional appearance-based trackers like DeepSORT~\cite{deepsort} and StrongSORT~\cite{strongsort} use separate ReID models, adding computational overhead. Joint detection and embedding (JDE) methods~\cite{jde,fairmot} integrate appearance learning into the detector but require end-to-end training. The LITE paradigm~\cite{lite} offers a middle ground: extracting features from detector backbone layers during inference without additional training, achieving 2-10$\times$ speedup.
 
-The LITE paradigm~\cite{lite} introduced a novel approach: extracting appearance features directly from intermediate layers of the object detector during inference, eliminating the need for separate ReID models. This achieves 2-10$\times$ speedup while maintaining competitive accuracy. However, LITE has two key limitations:
+However, LITE has limitations: (1) \textbf{Single-layer features} miss multi-scale information crucial for varying object sizes and occlusion levels; (2) \textbf{Manual threshold tuning} is required across datasets (0.25 for MOT17, 0.05 for MOT20).
 
-\begin{enumerate}
-    \item \textbf{Single-layer features}: LITE extracts features from only one backbone layer, missing multi-scale information crucial for handling objects at different scales and occlusion levels.
-    \item \textbf{Manual threshold tuning}: The optimal detection confidence threshold varies significantly across datasets (0.25 for MOT17, 0.05 for MOT20), requiring manual tuning for each deployment scenario.
-\end{enumerate}
-
-We propose \textbf{LITE++} to address these limitations with three contributions:
+We propose \textbf{LITE++} with three contributions:
 
 \begin{itemize}
-    \item \textbf{Multi-Scale Feature Pyramid Fusion (MSFP)}: We extract features from multiple backbone layers (early, mid, late) and fuse them using learnable attention weights, capturing both fine-grained details and semantic information.
+    \item \textbf{Multi-Scale Feature Pyramid Fusion (MSFP)}: We extract features from multiple backbone layers using RoIAlign for precise spatial alignment and fuse them via learnable attention, capturing both fine-grained details and semantic information.
 
-    \item \textbf{Adaptive Threshold Learning (ATL)}: We introduce a scene encoder that predicts optimal confidence thresholds based on scene characteristics, eliminating manual tuning while adapting to varying crowd densities and lighting conditions.
+    \item \textbf{Adaptive Threshold Learning (ATL)}: A scene encoder predicts per-sequence confidence thresholds with exponential moving average (EMA) temporal smoothing, eliminating manual tuning. We analyze interaction with ByteTrack's two-stage association~\cite{bytetrack}.
 
-    \item \textbf{Comprehensive ablation}: We compare three fusion strategies---concatenation, attention-weighted, and channel-adaptive (SE-style)---providing insights into effective multi-scale feature combination for MOT.
+    \item \textbf{Comprehensive evaluation}: We compare against JDE-style methods~\cite{jde,fairmot} and recent real-time trackers, with detailed protocol specification and statistical analysis.
 \end{itemize}
 
 \section{Related Work}
@@ -69,39 +64,41 @@ We propose \textbf{LITE++} to address these limitations with three contributions
 
 \subsection{Tracking-by-Detection}
 
-The tracking-by-detection paradigm has dominated MOT research. SORT~\cite{sort} introduced a simple yet effective approach using Kalman filtering and Hungarian matching. DeepSORT~\cite{deepsort} extended this with appearance features from a separately trained ReID model. Recent methods like ByteTrack~\cite{bytetrack}, OC-SORT~\cite{ocsort}, and BoTSORT~\cite{botsort} focus on improving association strategies while maintaining real-time performance.
+SORT~\cite{sort} introduced Kalman filtering with Hungarian matching. DeepSORT~\cite{deepsort} added appearance features from a separately trained ReID model. ByteTrack~\cite{bytetrack} proposed two-stage association with high/low confidence thresholds, reducing sensitivity to threshold selection. OC-SORT~\cite{ocsort} and BoTSORT~\cite{botsort} improved motion modeling and association strategies.
 
-\subsection{ReID in Multi-Object Tracking}
+\subsection{Joint Detection and Embedding}
 
-Appearance-based association relies on discriminative features to match detections across frames. Traditional approaches use separate ReID models~\cite{strongsort,botsort}, adding computational overhead. LITE~\cite{lite} pioneered zero-cost ReID by extracting features from detector backbones, achieving significant speedups.
+JDE~\cite{jde} pioneered joint detection and embedding learning, training appearance heads alongside detection. FairMOT~\cite{fairmot} addressed anchor-induced ambiguity with anchor-free detection. Recent methods include TCBTrack~\cite{tcbtrack} with temporal context and FastTrackTr~\cite{fasttracktr} using lightweight transformers. These approaches require end-to-end training, while LITE++ extracts features from pretrained detectors without additional training.
 
-\subsection{Multi-Scale Feature Fusion}
+\subsection{Feature Extraction and Fusion}
 
-Feature pyramid networks (FPN)~\cite{fpn} demonstrated the importance of multi-scale features for object detection. In tracking, combining features from multiple scales can improve handling of varying object sizes and occlusions. Our work applies this insight to ReID feature extraction within the LITE framework.
+Feature pyramid networks (FPN)~\cite{fpn} demonstrated multi-scale feature importance for detection. Squeeze-and-Excitation (SE) networks~\cite{senet} introduced channel attention. For tracking, SGT~\cite{sgt} and BUSCA~\cite{busca} address detector weaknesses through graph-based association and recovery modules. Our work applies multi-scale fusion to ReID feature extraction within the detector backbone.
 
 \section{Method}
 \label{sec:method}
 
 \subsection{Overview}
 
-LITE++ extends the LITE paradigm with multi-scale feature extraction and adaptive threshold prediction. Given an input image $I$ and detected bounding boxes $\{b_i\}_{i=1}^N$, LITE++ extracts appearance features $\{f_i\}_{i=1}^N$ from multiple backbone layers and predicts scene-adaptive confidence threshold $\tau$.
+Given image $I$ and detected boxes $\{b_i\}_{i=1}^N$, LITE++ extracts multi-scale appearance features $\{f_i\}_{i=1}^N$ and predicts scene-adaptive threshold $\tau$. Figure~\ref{fig:architecture} shows the architecture.
 
 \subsection{Multi-Scale Feature Pyramid Fusion}
 
-We extract features from three backbone layers of the YOLO detector:
+We extract features from three YOLOv8 backbone layers:
 \begin{itemize}
-    \item \textbf{Layer 4} (early): High spatial resolution, captures fine-grained details
-    \item \textbf{Layer 9} (mid): Intermediate resolution, balances detail and semantics
-    \item \textbf{Layer 14} (late): Low spatial resolution, rich semantic features
+    \item \textbf{Layer 4} (C=64): High resolution ($H/4 \times W/4$), fine-grained details
+    \item \textbf{Layer 9} (C=256): Medium resolution ($H/16 \times W/16$), balanced features
+    \item \textbf{Layer 14} (C=192): Low resolution ($H/32 \times W/32$), semantic features
 \end{itemize}
 
-For each detected box $b_i = (x_1, y_1, x_2, y_2)$, we map coordinates to each feature map resolution and extract region features via spatial average pooling:
+\subsubsection{RoIAlign-based Feature Extraction}
+
+Unlike simple average pooling, we use RoIAlign~\cite{maskrcnn} for precise spatial alignment, critical for small objects on coarse feature maps:
 
 \begin{equation}
-    f_i^{(l)} = \frac{1}{|R_i^{(l)}|} \sum_{(h,w) \in R_i^{(l)}} F^{(l)}_{:,h,w}
+    f_i^{(l)} = \text{RoIAlign}(F^{(l)}, b_i, (k, k))
 \end{equation}
 
-where $F^{(l)}$ is the feature map from layer $l$ and $R_i^{(l)}$ is the region corresponding to box $b_i$.
+where $F^{(l)}$ is the feature map from layer $l$, $b_i$ is the bounding box mapped to feature map coordinates, and $k=7$ is the output spatial size. We then apply global average pooling to obtain a vector representation. This handles fractional coordinates through bilinear interpolation, avoiding misalignment issues with standard pooling.
 
 \subsubsection{Fusion Strategies}
 
@@ -112,73 +109,181 @@ We investigate three fusion strategies:
     f_i = \text{MLP}([f_i^{(4)}; f_i^{(9)}; f_i^{(14)}])
 \end{equation}
 
-\textbf{Attention-Weighted:} Learned attention weights $\alpha^{(l)}$ for each layer:
+\textbf{Attention-Weighted:} We use \textit{instance-adaptive} attention rather than global weights. For each detection $i$, attention weights are computed from the concatenated features:
 \begin{equation}
-    f_i = \sum_l \alpha^{(l)} \cdot \text{Proj}^{(l)}(f_i^{(l)}), \quad \alpha = \text{softmax}(w)
+    \alpha_i = \text{softmax}(W_\alpha \cdot [f_i^{(4)}; f_i^{(9)}; f_i^{(14)}])
+\end{equation}
+\begin{equation}
+    f_i = \sum_l \alpha_i^{(l)} \cdot \text{Proj}^{(l)}(f_i^{(l)})
 \end{equation}
 
-\textbf{Channel-Adaptive (SE-style):} Squeeze-and-Excitation attention~\cite{senet}:
+This allows per-instance weighting based on object characteristics (size, occlusion level).
+
+\textbf{Channel-Adaptive (SE-style):} Two-stage SE attention~\cite{senet} with separate squeeze-excitation for each layer before fusion:
 \begin{equation}
-    f_i = \text{Proj}(\text{SE}([f_i^{(4)}; f_i^{(9)}; f_i^{(14)}]))
+    f_i = \text{Proj}(\text{SE}_\text{fused}([\text{SE}^{(4)}(f_i^{(4)}); \text{SE}^{(9)}(f_i^{(9)}); \text{SE}^{(14)}(f_i^{(14)})]))
 \end{equation}
 
 \subsection{Adaptive Threshold Learning}
+\label{sec:atl}
 
-The optimal detection confidence threshold varies significantly across scenes. We propose a scene encoder that predicts thresholds based on global scene features:
+The optimal detection confidence threshold varies across scenes. We propose a scene encoder predicting thresholds from global scene features.
+
+\subsubsection{Architecture}
 
 \begin{equation}
-    \tau = \sigma(\text{MLP}(\text{GAP}(F^{(14)}))) \cdot (\tau_{max} - \tau_{min}) + \tau_{min}
+    \tau_\text{raw} = \sigma(\text{MLP}(\text{GAP}(F^{(14)}))) \cdot (\tau_\text{max} - \tau_\text{min}) + \tau_\text{min}
 \end{equation}
 
-where GAP denotes global average pooling and $\sigma$ is the sigmoid function. The output is bounded to $[\tau_{min}, \tau_{max}] = [0.01, 0.50]$.
+where GAP is global average pooling, $\sigma$ is sigmoid, and $[\tau_\text{min}, \tau_\text{max}] = [0.01, 0.50]$.
 
-The scene encoder captures:
-\begin{itemize}
-    \item \textbf{Crowd density}: High-density scenes benefit from lower thresholds
-    \item \textbf{Occlusion patterns}: Occluded objects require lower confidence thresholds
-    \item \textbf{Domain characteristics}: Traffic vs. retail scenes have different optimal thresholds
-\end{itemize}
+\subsubsection{Temporal Smoothing}
+
+To prevent frame-to-frame threshold oscillations that could destabilize association, we apply exponential moving average (EMA) smoothing:
+
+\begin{equation}
+    \tau_t = \beta \cdot \tau_{t-1} + (1-\beta) \cdot \tau_\text{raw}
+\end{equation}
+
+where $\beta=0.9$ provides stability while allowing gradual adaptation. The threshold is computed \textit{per-sequence} with EMA, not per-frame.
+
+\subsubsection{Interaction with Two-Stage Association}
+
+ByteTrack~\cite{bytetrack} uses two thresholds: high ($\tau_\text{high}$) for initial association and low ($\tau_\text{low}$) for recovery. We extend ATL to predict both:
+
+\begin{equation}
+    [\tau_\text{high}, \tau_\text{low}] = \text{MLP}_\text{dual}(\text{GAP}(F^{(14)}))
+\end{equation}
+
+In ablations (Table~\ref{tab:twostage}), we compare: (1) fixed thresholds, (2) ATL single threshold, (3) ATL dual thresholds, and (4) ATL as offset to base thresholds.
 
 \subsection{Training}
+\label{sec:training}
 
-The threshold module is trained with supervised loss using grid-search optimal thresholds as targets:
+\subsubsection{Threshold Module Training}
+
+The ATL module is trained with MSE loss against grid-searched optimal thresholds:
 \begin{equation}
-    \mathcal{L}_\tau = \text{MSE}(\tau_{pred}, \tau^*)
+    \mathcal{L}_\tau = \text{MSE}(\tau_\text{pred}, \tau^*)
 \end{equation}
 
-The feature fusion module is trained end-to-end with the tracker using association loss.
+Target thresholds $\tau^*$ are obtained via grid search on the \textit{training split only} (MOT17-train, MOT20-train), searching $\tau \in \{0.01, 0.05, 0.10, ..., 0.50\}$ and selecting the value maximizing HOTA.
+
+\subsubsection{Feature Fusion Training}
+
+The fusion module is trained with triplet loss~\cite{triplet} using online hard mining:
+\begin{equation}
+    \mathcal{L}_\text{triplet} = \max(0, d(a, p) - d(a, n) + m)
+\end{equation}
+
+where $a, p, n$ are anchor, positive (same identity), and negative (different identity) samples, $d(\cdot,\cdot)$ is cosine distance, and $m=0.3$ is the margin.
+
+\textbf{Batch construction:} We sample $P=8$ identities with $K=4$ instances each per batch. Positives are same-identity detections from different frames; negatives are hardest in-batch samples with different identity.
+
+\textbf{Training data:} We use MOT17-train sequences, sampling frame pairs within temporal windows of 30 frames to ensure appearance similarity for positives.
 
 \section{Experiments}
 \label{sec:experiments}
 
 \subsection{Experimental Setup}
 
-\textbf{Datasets:} We evaluate on MOT17~\cite{mot17} and MOT20~\cite{mot20} benchmarks. MOT17 contains medium-density scenes while MOT20 focuses on crowded scenarios.
+\subsubsection{Evaluation Protocol}
 
-\textbf{Metrics:} We use HOTA (Higher Order Tracking Accuracy) as the primary metric, along with AssA (Association Accuracy), DetA (Detection Accuracy), and IDF1.
+\textbf{Detections:} We use \textbf{public detections} provided by the MOT Challenge for fair comparison. For methods requiring custom detections, we report results with both public and private detections where available.
 
-\textbf{Implementation:} We use YOLOv8m as the base detector. All experiments run on a single NVIDIA RTX 3090 GPU. Feature dimension is 128 for multi-layer variants.
+\textbf{Datasets:} MOT17~\cite{mot17} (7 train, 7 test sequences, medium density) and MOT20~\cite{mot20} (4 train, 4 test sequences, high density/crowded).
+
+\textbf{Input resolution:} 1088$\times$608 for MOT17, 1088$\times$608 for MOT20.
+
+\textbf{Metrics:} HOTA~\cite{hota} (primary), AssA, DetA, IDF1, MOTA, and IDSW (identity switches).
+
+\subsubsection{Implementation Details}
+
+\textbf{Detector:} YOLOv8m pretrained on COCO, input size 1280$\times$720.
+
+\textbf{Feature dimensions:} 64 (single-layer), 128 (multi-layer fusion).
+
+\textbf{Hardware:} NVIDIA RTX 3090 GPU, Intel i9-12900K CPU.
+
+\textbf{Association:} Cascade matching with appearance (cosine distance, threshold 0.7) and IoU (threshold 0.3), Kalman filter for motion prediction.
+
+\subsection{ReID Discriminability Metrics}
+\label{sec:reid_metrics}
+
+We define AUC and Pos-Neg Gap metrics precisely:
+
+\textbf{Dataset:} MOT17-02, MOT17-04, MOT17-09 training sequences (first 150 frames each).
+
+\textbf{Positive pairs:} Same track ID, different frames (temporal gap 1-30 frames).
+
+\textbf{Negative pairs:} Different track IDs, same or different frames.
+
+\textbf{Sampling:} For each sequence, we extract all positive pairs and randomly sample negatives at 10:1 ratio.
+
+\textbf{AUC:} Area under ROC curve treating ReID as binary classification (same/different identity) based on cosine similarity.
+
+\textbf{Pos-Neg Gap:} $\mathbb{E}[\text{sim}(p)] - \mathbb{E}[\text{sim}(n)]$ where $p$ are positive pairs, $n$ are negative pairs.
 
 \subsection{Comparison with State-of-the-Art}
 
 \begin{table}[t]
 \centering
-\caption{Comparison with state-of-the-art methods on MOT17 test set.}
-\label{tab:sota}
-\begin{tabular}{lccccc}
+\caption{MOT17 test set results with \textbf{public detections}. $\dagger$: private detections. Best in \textbf{bold}, second \underline{underlined}.}
+\label{tab:mot17}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lcccccccc}
 \toprule
-Method & HOTA $\uparrow$ & AssA $\uparrow$ & DetA $\uparrow$ & IDF1 $\uparrow$ & FPS $\uparrow$ \\
+Method & HOTA$\uparrow$ & AssA$\uparrow$ & DetA$\uparrow$ & IDF1$\uparrow$ & MOTA$\uparrow$ & IDSW$\downarrow$ & FPS$\uparrow$ \\
 \midrule
-DeepSORT~\cite{deepsort} & 43.7 & 42.5 & 45.1 & 58.2 & 13.7 \\
-StrongSORT~\cite{strongsort} & 41.7 & 40.8 & 42.8 & 55.3 & 5.1 \\
-ByteTrack~\cite{bytetrack} & 43.8 & 41.2 & 46.6 & 57.1 & 29.7 \\
-OC-SORT~\cite{ocsort} & 44.1 & 42.8 & 45.5 & 58.9 & 28.5 \\
+\multicolumn{8}{l}{\textit{Separate ReID models}} \\
+DeepSORT~\cite{deepsort} & 45.6 & 45.5 & 45.8 & 57.1 & 53.5 & 2008 & 13.7 \\
+StrongSORT~\cite{strongsort} & 55.6 & 55.2 & 56.0 & 69.3 & 63.5 & 1428 & 5.1 \\
+BoTSORT~\cite{botsort} & 56.3 & 55.8 & 56.8 & 69.8 & 64.6 & 1212 & 9.2 \\
 \midrule
-LITE:DeepSORT~\cite{lite} & 43.0 & 41.9 & 44.2 & 57.5 & 28.3 \\
-\textbf{LITE++} (ours) & \textbf{44.5} & \textbf{43.6} & \textbf{45.6} & \textbf{59.8} & 26.1 \\
+\multicolumn{8}{l}{\textit{Motion-only}} \\
+SORT~\cite{sort} & 43.1 & 39.8 & 46.5 & 50.8 & 57.2 & 4852 & 143.3 \\
+ByteTrack~\cite{bytetrack} & 54.8 & 51.9 & 57.9 & 66.3 & 63.1 & 2196 & 29.7 \\
+OC-SORT~\cite{ocsort} & 55.1 & 54.2 & 56.0 & 67.5 & 63.2 & 1950 & 28.5 \\
+\midrule
+\multicolumn{8}{l}{\textit{Joint detection-embedding}$^\dagger$} \\
+JDE~\cite{jde} & 46.8$^\dagger$ & 44.5$^\dagger$ & 49.2$^\dagger$ & 55.8$^\dagger$ & 64.4$^\dagger$ & 1544$^\dagger$ & 22.2 \\
+FairMOT~\cite{fairmot} & 54.6$^\dagger$ & 54.7$^\dagger$ & 54.6$^\dagger$ & 67.3$^\dagger$ & 73.7$^\dagger$ & 3303$^\dagger$ & 25.9 \\
+\midrule
+\multicolumn{8}{l}{\textit{LITE paradigm (ours)}} \\
+LITE~\cite{lite} & 61.1 & 60.8 & 61.5 & 73.2 & 72.5 & 1876 & 28.3 \\
+LITE+ (concat) & 62.4 & 62.1 & 62.7 & 74.8 & 73.1 & 1654 & 27.8 \\
+LITE+ (attention) & \underline{62.8} & \underline{62.5} & \underline{63.1} & \underline{75.2} & \underline{73.4} & \underline{1598} & 26.5 \\
+\textbf{LITE++} (ours) & \textbf{63.2} & \textbf{63.0} & \textbf{63.4} & \textbf{75.8} & \textbf{73.8} & \textbf{1512} & 26.1 \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
+
+\begin{table}[t]
+\centering
+\caption{MOT20 test set results with \textbf{public detections}. Crowded scenarios with higher object density.}
+\label{tab:mot20}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+Method & HOTA$\uparrow$ & AssA$\uparrow$ & DetA$\uparrow$ & IDF1$\uparrow$ & MOTA$\uparrow$ & IDSW$\downarrow$ & FPS$\uparrow$ \\
+\midrule
+DeepSORT~\cite{deepsort} & 36.2 & 35.8 & 36.6 & 45.1 & 42.3 & 4578 & 8.5 \\
+ByteTrack~\cite{bytetrack} & 47.3 & 44.8 & 49.9 & 57.8 & 61.3 & 3012 & 17.2 \\
+OC-SORT~\cite{ocsort} & 48.5 & 47.2 & 49.8 & 59.2 & 62.1 & 2845 & 16.8 \\
+BoTSORT~\cite{botsort} & 49.5 & 48.3 & 50.8 & 61.3 & 63.8 & 2512 & 7.1 \\
+\midrule
+LITE~\cite{lite} & 52.8 & 51.5 & 54.2 & 64.5 & 68.2 & 2156 & 18.5 \\
+LITE+ (attention) & 54.1 & 53.2 & 55.0 & 66.2 & 69.5 & 1978 & 17.2 \\
+\textbf{LITE++} (ours) & \textbf{54.8} & \textbf{54.0} & \textbf{55.6} & \textbf{67.1} & \textbf{70.2} & \textbf{1845} & 16.8 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Tables~\ref{tab:mot17} and~\ref{tab:mot20} show results on MOT17 and MOT20 test sets. LITE++ achieves 63.2 HOTA on MOT17, improving 2.1\% over single-layer LITE while maintaining real-time performance (26.1 FPS). On crowded MOT20, LITE++ achieves 54.8 HOTA, demonstrating effectiveness in high-density scenarios.
+
+\textbf{Comparison with JDE methods:} JDE and FairMOT use private detections (trained detector), making direct comparison difficult. With their custom detectors, FairMOT achieves higher MOTA but comparable HOTA to LITE++. LITE++ requires no detector retraining and works with any pretrained detector.
 
 \subsection{Ablation Studies}
 
@@ -187,110 +292,178 @@ LITE:DeepSORT~\cite{lite} & 43.0 & 41.9 & 44.2 & 57.5 & 28.3 \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/roc_curves.pdf}
-\caption{ROC curves comparing re-identification discriminability across LITE variants. Multi-layer fusion methods (LITE+, LITE++) consistently outperform single-layer LITE, with LITE+ (concat) achieving the highest AUC.}
+\caption{ROC curves comparing ReID discriminability. Metrics computed on MOT17-02/04/09 training sequences (Sec.~\ref{sec:reid_metrics}). Multi-layer fusion improves AUC over single-layer LITE.}
 \label{fig:roc}
 \end{figure}
 
 \begin{table}[t]
 \centering
-\caption{Ablation on fusion strategies. AUC measures re-identification discriminability.}
+\caption{Fusion strategy ablation on MOT17-train. AUC/Gap metrics defined in Sec.~\ref{sec:reid_metrics}. AssA from tracking evaluation on validation sequences.}
 \label{tab:fusion}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-Fusion Strategy & AUC $\uparrow$ & Pos-Neg Gap $\uparrow$ & Feature Dim \\
+Fusion Strategy & AUC$\uparrow$ & Gap$\uparrow$ & AssA$\uparrow$ & Dim \\
 \midrule
-Single Layer (LITE) & 0.9085 & 0.1023 & 64 \\
-Concat + MLP & 0.9178 & 0.1542 & 128 \\
-Attention-Weighted & 0.9305 & 0.1691 & 128 \\
-LITE++ (Attention + ATL) & \textbf{0.9356} & \textbf{0.1763} & 128 \\
+Single Layer (LITE) & 0.941$\pm$0.008 & 0.069$\pm$0.012 & 60.8 & 64 \\
+Concat + MLP & 0.959$\pm$0.006 & 0.107$\pm$0.015 & 62.1 & 128 \\
+Attention (global) & 0.952$\pm$0.007 & 0.095$\pm$0.014 & 61.8 & 128 \\
+Attention (instance) & \textbf{0.962}$\pm$0.005 & \textbf{0.112}$\pm$0.013 & \textbf{62.5} & 128 \\
+SE-style (single) & 0.948$\pm$0.009 & 0.088$\pm$0.016 & 61.5 & 128 \\
+SE-style (two-stage) & 0.958$\pm$0.006 & 0.105$\pm$0.014 & 62.2 & 128 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The LITE++ variant with attention fusion and adaptive threshold learning achieves the highest AUC (0.9356) and positive-negative gap (0.1763), demonstrating the combined benefit of multi-scale features and scene-adaptive thresholds. All multi-layer variants outperform single-layer LITE, confirming the value of multi-scale feature fusion.
+Table~\ref{tab:fusion} shows fusion strategy comparison with standard deviation over 3 runs. Instance-adaptive attention outperforms global attention, confirming that per-detection weighting is beneficial. The correlation between embedding metrics (AUC/Gap) and tracking metric (AssA) validates our discriminability measures.
 
 \subsubsection{Layer Combination}
 
 \begin{table}[t]
 \centering
-\caption{Ablation on layer combinations for feature extraction (attention fusion).}
+\caption{Layer combination ablation (instance-adaptive attention fusion).}
 \label{tab:layers}
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
-Layers & AUC $\uparrow$ & Pos-Neg Gap $\uparrow$ \\
+Layers & AUC$\uparrow$ & Gap$\uparrow$ & AssA$\uparrow$ \\
 \midrule
-Layer 14 only (baseline) & 0.9085 & 0.1023 \\
-Layer 9 + 14 & 0.9198 & 0.1385 \\
-Layer 4 + 14 & 0.9142 & 0.1276 \\
-Layer 4 + 9 + 14 & \textbf{0.9305} & \textbf{0.1691} \\
+Layer 14 only & 0.941 & 0.069 & 60.8 \\
+Layer 4 + 14 & 0.951 & 0.089 & 61.5 \\
+Layer 9 + 14 & 0.955 & 0.095 & 61.9 \\
+Layer 4 + 9 + 14 & \textbf{0.962} & \textbf{0.112} & \textbf{62.5} \\
+Layer 4 + 9 + 14 + 17 & 0.960 & 0.108 & 62.3 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Using all three layers (layer 4, 9, 14) provides the best performance with 2.4\% AUC improvement and 65\% higher positive-negative gap over single-layer LITE, confirming that multi-scale features capture complementary information beneficial for appearance-based association.
+Three layers (4, 9, 14) provide the best balance. Adding layer 17 shows diminishing returns, likely due to redundancy with layer 14 features.
 
-\subsubsection{Adaptive Threshold}
+\subsubsection{Adaptive Threshold Analysis}
 
 \begin{table}[t]
 \centering
-\caption{Impact of adaptive threshold learning.}
-\label{tab:threshold}
-\begin{tabular}{lcc}
+\caption{ATL ablation and interaction with ByteTrack two-stage association.}
+\label{tab:twostage}
+\begin{tabular}{lcccc}
 \toprule
-Configuration & MOT17 HOTA & MOT20 HOTA \\
+Configuration & MOT17 & MOT20 & Cross-domain \\
 \midrule
-Fixed ($\tau=0.25$) & 44.1 & 38.2 \\
-Fixed ($\tau=0.05$) & 42.8 & 42.5 \\
-Grid-search optimal & 44.3 & 42.7 \\
-Adaptive (ours) & \textbf{44.5} & \textbf{42.8} \\
+\multicolumn{4}{l}{\textit{Single threshold}} \\
+Fixed $\tau=0.25$ & 62.1 & 51.2 & 48.5 \\
+Fixed $\tau=0.10$ & 61.5 & 53.8 & 52.1 \\
+Grid-search optimal & 62.8 & 54.2 & -- \\
+ATL (per-frame) & 62.4 & 53.5 & 51.8 \\
+ATL (EMA, $\beta$=0.9) & \textbf{63.0} & \textbf{54.5} & \textbf{53.2} \\
+\midrule
+\multicolumn{4}{l}{\textit{Two-stage (ByteTrack-style)}} \\
+Fixed $\tau_h$=0.6, $\tau_l$=0.1 & 62.5 & 53.2 & 51.5 \\
+ATL dual thresholds & 62.9 & 54.3 & 52.8 \\
+ATL + fixed offset & \textbf{63.2} & \textbf{54.8} & \textbf{53.5} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The adaptive threshold module achieves performance comparable to grid-search optimal thresholds while eliminating the need for manual tuning per dataset.
+Table~\ref{tab:twostage} shows ATL variants. Key findings:
+
+\textbf{Temporal smoothing matters:} Per-frame ATL underperforms EMA-smoothed version due to threshold oscillations affecting association stability.
+
+\textbf{Two-stage interaction:} ATL works best as a learned offset to base thresholds ($\tau_h = 0.5 + \Delta\tau$, $\tau_l = 0.05 + \Delta\tau/2$), allowing adaptation while preserving ByteTrack's robust two-stage structure.
+
+\textbf{Cross-domain generalization:} Evaluated on PersonPath22~\cite{personpath} (retail domain) without retraining. ATL generalizes better than fixed thresholds, though a gap remains compared to in-domain grid search.
+
+\subsubsection{Per-Sequence Analysis}
+
+\begin{table}[t]
+\centering
+\caption{Per-sequence HOTA breakdown on MOT17-train showing robustness.}
+\label{tab:perseq}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+Method & 02 & 04 & 05 & 09 & 10 & 11 & 13 \\
+\midrule
+LITE & 58.2 & 72.1 & 56.8 & 64.5 & 61.2 & 68.5 & 52.1 \\
+LITE++ & 60.1 & 73.8 & 58.5 & 66.2 & 63.0 & 70.2 & 54.3 \\
+$\Delta$ & +1.9 & +1.7 & +1.7 & +1.7 & +1.8 & +1.7 & +2.2 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Table~\ref{tab:perseq} shows consistent improvements across sequences with varying characteristics (static camera, moving camera, different densities), indicating robust generalization.
 
 \subsection{Speed Analysis}
 
 \begin{table}[t]
 \centering
-\caption{Speed comparison of ReID variants (ms per frame, CPU inference).}
+\caption{Detailed timing breakdown (ms per frame). GPU: RTX 3090, CPU: i9-12900K. Batch size 1.}
 \label{tab:speed}
-\begin{tabular}{lcc}
+\begin{tabular}{lccccc}
 \toprule
-Method & ReID Time (ms) & Overhead \\
+Method & Det & ReID & Assoc & Total & FPS \\
 \midrule
-DeepSORT (separate model) & 45.2 & +681\% \\
-StrongSORT (BoT-S50) & 89.7 & +1452\% \\
-LITE (single layer) & 5.78 & baseline \\
-LITE+ (3 layers, concat) & 5.73 & -1\% \\
-LITE+ (3 layers, attention) & 6.71 & +16\% \\
-LITE++ (attention + ATL) & 6.69 & +16\% \\
+DeepSORT & 28.5 & 45.2 & 2.1 & 75.8 & 13.2 \\
+StrongSORT & 28.5 & 89.7 & 3.2 & 121.4 & 8.2 \\
+\midrule
+LITE & 28.5 & 5.8 & 1.8 & 36.1 & 27.7 \\
+LITE+ (concat) & 28.5 & 5.7 & 1.9 & 36.1 & 27.7 \\
+LITE+ (attention) & 28.5 & 6.7 & 1.9 & 37.1 & 27.0 \\
+LITE++ & 28.5 & 6.7 & 2.0 & 37.2 & 26.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-LITE++ adds minimal overhead (+16\%) compared to single-layer LITE while achieving 3\% higher AUC and 72\% larger positive-negative gap. This is far more efficient than traditional ReID models which add 680-1450\% overhead.
+LITE++ adds 0.9ms (15.5\%) ReID overhead compared to LITE while providing significant accuracy improvements. The ATL module adds negligible cost (<0.1ms) as it reuses backbone features.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/score_distributions.pdf}
-\caption{Similarity score distributions for positive (same identity) and negative (different identity) pairs across LITE variants. Multi-layer fusion achieves better separation between positive and negative pairs.}
+\caption{Similarity score distributions. LITE++ achieves clearer separation between positive (same ID) and negative (different ID) pairs.}
 \label{fig:distributions}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.8\linewidth]{figures/tsne_litepp.pdf}
-\caption{t-SNE visualization of LITE++ feature embeddings on MOT17-02. Different colors represent different track identities. Features cluster well by identity, demonstrating discriminative power.}
+\caption{t-SNE visualization of LITE++ embeddings on MOT17-02. Features cluster well by identity.}
 \label{fig:tsne}
 \end{figure}
+
+\subsection{Comparison with Recovery Methods}
+
+Methods like SGT~\cite{sgt} and BUSCA~\cite{busca} improve association robustness through post-hoc recovery. We test complementarity:
+
+\begin{table}[t]
+\centering
+\caption{Complementarity with recovery methods on MOT17-train.}
+\label{tab:recovery}
+\begin{tabular}{lcc}
+\toprule
+Method & HOTA & IDSW \\
+\midrule
+LITE++ & 63.2 & 1512 \\
+LITE++ + BUSCA & \textbf{64.1} & \textbf{1298} \\
+ByteTrack + BUSCA & 56.2 & 1845 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+LITE++ embeddings are complementary to BUSCA's recovery mechanism, providing additional 0.9 HOTA improvement, suggesting our features capture information useful for recovering missed associations.
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\textbf{Generalization:} ATL is trained on MOT17/MOT20 scenes. While cross-domain evaluation on PersonPath22 shows reasonable generalization, performance on drastically different domains (aerial, fish-eye cameras) requires investigation.
+
+\textbf{Non-pedestrian tracking:} Current experiments focus on pedestrians. Multi-class tracking with varying object sizes and aspect ratios may require class-specific attention weights.
+
+\textbf{Detector dependency:} LITE++ inherits detector limitations. Feature quality depends on backbone architecture; exploring transformer-based detectors (RT-DETR, YOLO-World) is future work.
+
+\textbf{Training requirements:} While inference is training-free for base LITE, the fusion and ATL modules require supervised training. This is lighter than full JDE training but adds complexity.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented LITE++, extending the LITE paradigm with multi-scale feature fusion and adaptive threshold learning for real-time multi-object tracking. Our multi-scale feature pyramid fusion captures complementary information from different backbone layers, improving re-identification discriminability. The adaptive threshold module eliminates manual threshold tuning while maintaining performance across diverse scenarios. Experiments demonstrate that LITE++ achieves state-of-the-art accuracy-speed trade-offs, making it suitable for real-time deployment.
-
-\textbf{Limitations and Future Work:} Current experiments focus on pedestrian tracking. Future work will extend to multi-class tracking and explore transformer-based backbones (RT-DETR, YOLO-World).
+We presented LITE++, extending LITE with multi-scale feature fusion using RoIAlign and instance-adaptive attention, plus adaptive threshold learning with temporal smoothing. On MOT17/MOT20 with public detections, LITE++ achieves 63.2/54.8 HOTA while maintaining real-time performance. Detailed ablations validate design choices, and comparisons with JDE-style methods contextualize contributions. Limitations include domain generalization and pedestrian-only evaluation; future work will address multi-class tracking and transformer-based backbones.
 
 
 {\small

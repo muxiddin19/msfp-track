@@ -34,13 +34,7 @@ import cv2
 from tqdm import tqdm
 
 from ultralytics import YOLO
-from reid_modules import (
-    LITE,
-    LITEPlus,
-    create_lite_plus,
-    LITEPlusPlusUnified,
-    create_lite_plus_plus
-)
+from reid_modules.lite_plus_unified import LITEPlusPlusUnified
 
 
 class ExperimentConfig:
@@ -115,6 +109,35 @@ class ExperimentConfig:
     THRESHOLD_VALUES = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 
 
+def create_reid_model(model, variant_config: Dict, device: str = 'cuda:0'):
+    """
+    Create ReID model based on variant configuration.
+    All variants use LITEPlusPlusUnified with hook-based feature extraction.
+    """
+    variant_type = variant_config.get('type', 'unified')
+
+    if variant_type == 'single_layer':
+        # Single layer LITE - use only layer14
+        layers = [variant_config.get('layer', 'layer14')]
+        fusion_type = 'concat'
+        output_dim = 64
+    else:
+        # Multi-layer variants
+        layers = variant_config.get('layers', ['layer4', 'layer9', 'layer14'])
+        fusion_type = variant_config.get('fusion', 'attention')
+        output_dim = 128
+
+    return LITEPlusPlusUnified(
+        model=model,
+        layer_indices=layers,
+        fusion_type=fusion_type,
+        output_dim=output_dim,
+        enable_adaptive_threshold=variant_config.get('adaptive_threshold', False),
+        device=device,
+        yolo_version='auto'  # Auto-detect channel sizes
+    )
+
+
 def run_tracking_experiment(
     seq_dir: str,
     reid_variant: str,
@@ -149,27 +172,7 @@ def run_tracking_experiment(
         if variant_config is None:
             raise ValueError(f"Unknown variant: {reid_variant}")
 
-        if variant_config['type'] == 'single_layer':
-            reid_model = LITE(
-                model=model,
-                appearance_feature_layer=variant_config['layer'],
-                device=device
-            )
-        elif variant_config['type'] == 'multi_layer':
-            reid_model = create_lite_plus(
-                model=model,
-                variant=variant_config['fusion'],
-                layers=variant_config['layers'],
-                device=device
-            )
-        elif variant_config['type'] == 'unified':
-            reid_model = create_lite_plus_plus(
-                model=model,
-                fusion_type=variant_config['fusion'],
-                layers=variant_config['layers'],
-                enable_adaptive_threshold=variant_config.get('adaptive_threshold', False),
-                device=device
-            )
+        reid_model = create_reid_model(model, variant_config, device)
 
         # Get frame list
         img_dir = os.path.join(seq_dir, 'img1')
@@ -244,15 +247,10 @@ def run_reid_quality_experiment(
 
         # Initialize ReID module
         variant_config = ExperimentConfig.VARIANTS.get(reid_variant)
+        if variant_config is None:
+            raise ValueError(f"Unknown variant: {reid_variant}")
 
-        if variant_config['type'] == 'single_layer':
-            reid_model = LITE(model=model, appearance_feature_layer=variant_config['layer'], device=device)
-        elif variant_config['type'] == 'multi_layer':
-            reid_model = create_lite_plus(model=model, variant=variant_config['fusion'],
-                                          layers=variant_config['layers'], device=device)
-        elif variant_config['type'] == 'unified':
-            reid_model = create_lite_plus_plus(model=model, fusion_type=variant_config['fusion'],
-                                               layers=variant_config['layers'], device=device)
+        reid_model = create_reid_model(model, variant_config, device)
 
         # Load ground truth
         gt_by_frame = defaultdict(list)
@@ -477,18 +475,76 @@ def run_layer_ablation(
                 continue
 
             try:
-                if len(layers) == 1:
-                    reid_model = LITE(model=model, appearance_feature_layer=layers[0], device=device)
-                else:
-                    reid_model = create_lite_plus(model=model, variant='attention',
-                                                  layers=layers, device=device)
+                # Create custom variant config for layer ablation
+                custom_config = {
+                    'type': 'single_layer' if len(layers) == 1 else 'multi_layer',
+                    'layer': layers[0] if len(layers) == 1 else None,
+                    'layers': layers,
+                    'fusion': 'attention'
+                }
+                reid_model = create_reid_model(model, custom_config, device)
 
-                # Quick evaluation (subset of frames)
-                res = run_reid_quality_experiment(
-                    seq_dir, gt_path, 'custom', yolo_model, device, max_frames=50
-                )
-                res['layers'] = layers
-                layer_results.append(res)
+                # Quick evaluation on ground truth boxes
+                gt_by_frame = defaultdict(list)
+                with open(gt_path, 'r') as f:
+                    for line in f:
+                        parts = line.strip().split(',')
+                        frame_id = int(parts[0])
+                        track_id = int(parts[1])
+                        x, y, w, h = map(float, parts[2:6])
+                        if len(parts) > 7:
+                            consider = int(parts[6])
+                            cls = int(parts[7])
+                            visibility = float(parts[8]) if len(parts) > 8 else 1.0
+                            if consider == 0 or cls != 1 or visibility < 0.25:
+                                continue
+                        gt_by_frame[frame_id].append({
+                            'track_id': track_id,
+                            'bbox': [x, y, x + w, y + h, 1.0, 0]
+                        })
+
+                # Extract features
+                all_features = []
+                all_track_ids = []
+                img_dir = os.path.join(seq_dir, 'img1')
+
+                for frame_id in sorted(gt_by_frame.keys())[:50]:
+                    img_path = os.path.join(img_dir, f'{frame_id:06d}.jpg')
+                    if not os.path.exists(img_path):
+                        continue
+                    image = cv2.imread(img_path)
+                    annotations = gt_by_frame[frame_id]
+                    if len(annotations) == 0:
+                        continue
+                    boxes = np.array([ann['bbox'] for ann in annotations])
+                    track_ids = [ann['track_id'] for ann in annotations]
+                    features = reid_model.extract_appearance_features(image, boxes)
+                    if len(features) > 0:
+                        all_features.append(features)
+                        all_track_ids.extend(track_ids)
+
+                if len(all_features) > 0:
+                    from sklearn.metrics import roc_curve, auc
+                    features = np.vstack(all_features)
+                    track_ids_arr = np.array(all_track_ids)
+                    features_norm = features / (np.linalg.norm(features, axis=1, keepdims=True) + 1e-8)
+                    similarity = features_norm @ features_norm.T
+                    n = len(track_ids_arr)
+                    pos_scores, neg_scores = [], []
+                    for i in range(n):
+                        for j in range(i + 1, n):
+                            if track_ids_arr[i] == track_ids_arr[j]:
+                                pos_scores.append(similarity[i, j])
+                            else:
+                                neg_scores.append(similarity[i, j])
+                    if len(pos_scores) > 0 and len(neg_scores) > 0:
+                        y_true = np.concatenate([np.ones(len(pos_scores)), np.zeros(len(neg_scores))])
+                        y_scores = np.concatenate([pos_scores, neg_scores])
+                        fpr, tpr, _ = roc_curve(y_true, y_scores)
+                        roc_auc = auc(fpr, tpr)
+                        res = {'auc': roc_auc, 'layers': layers, 'gap': float(np.mean(pos_scores) - np.mean(neg_scores))}
+                        layer_results.append(res)
+                        print(f"    AUC: {roc_auc:.4f}")
 
             except Exception as e:
                 print(f"  Error: {e}")
@@ -544,17 +600,8 @@ def run_speed_benchmark(
         print(f"\nBenchmarking: {variant_name}")
 
         try:
-            # Create model
-            if variant_config['type'] == 'single_layer':
-                reid_model = LITE(model=model, appearance_feature_layer=variant_config['layer'], device=device)
-            elif variant_config['type'] == 'multi_layer':
-                reid_model = create_lite_plus(model=model, variant=variant_config['fusion'],
-                                              layers=variant_config['layers'], device=device)
-            elif variant_config['type'] == 'unified':
-                reid_model = create_lite_plus_plus(model=model, fusion_type=variant_config['fusion'],
-                                                   layers=variant_config['layers'],
-                                                   enable_adaptive_threshold=variant_config.get('adaptive_threshold', False),
-                                                   device=device)
+            # Create model using unified helper
+            reid_model = create_reid_model(model, variant_config, device)
 
             # Warmup
             for _ in range(n_warmup):

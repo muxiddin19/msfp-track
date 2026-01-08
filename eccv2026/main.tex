@@ -77,9 +77,16 @@ Feature pyramid networks (FPN)~\cite{fpn} demonstrated multi-scale feature impor
 \section{Method}
 \label{sec:method}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/architecture.pdf}
+\caption{\textbf{LITE++ Architecture.} Given an input image, features are extracted from multiple YOLOv8 backbone layers (Layer 4, 9, 14). RoIAlign pools region features for each detection, which are then fused via instance-adaptive attention. The Adaptive Threshold module predicts scene-specific confidence thresholds using global features from Layer 14 with EMA temporal smoothing.}
+\label{fig:architecture}
+\end{figure*}
+
 \subsection{Overview}
 
-Given image $I$ and detected boxes $\{b_i\}_{i=1}^N$, LITE++ extracts multi-scale appearance features $\{f_i\}_{i=1}^N$ and predicts scene-adaptive threshold $\tau$.
+Given image $I$ and detected boxes $\{b_i\}_{i=1}^N$, LITE++ extracts multi-scale appearance features $\{f_i\}_{i=1}^N$ and predicts scene-adaptive threshold $\tau$. Figure~\ref{fig:architecture} illustrates the complete architecture.
 
 \subsection{Multi-Scale Feature Pyramid Fusion}
 

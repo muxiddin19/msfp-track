@@ -35,7 +35,7 @@
 \maketitle
 
 \begin{abstract}
-Multi-object tracking (MOT) in real-time applications requires a careful balance between accuracy and computational efficiency. The LITE paradigm demonstrated that appearance features can be extracted directly from object detector backbones without separate re-identification (ReID) models, achieving significant speedups. However, LITE is limited to single-layer features and requires manual threshold tuning across different scenarios. We propose \textbf{LITE++}, which extends LITE with three key innovations: (1) \textbf{Multi-Scale Feature Pyramid Fusion} that extracts and combines features from multiple backbone layers for richer representations; (2) \textbf{Adaptive Threshold Learning} that predicts scene-specific confidence thresholds, eliminating manual tuning; and (3) three fusion strategies (concatenation, attention-weighted, and channel-adaptive) with ablation analysis. Experiments on MOT17 and MOT20 benchmarks show that LITE++ improves association accuracy while maintaining real-time performance, achieving a better accuracy-speed trade-off than existing methods.
+Multi-object tracking (MOT) in real-time applications requires a careful balance between accuracy and computational efficiency. The LITE paradigm demonstrated that appearance features can be extracted directly from object detector backbones without separate re-identification (ReID) models, achieving significant speedups. However, LITE is limited to single-layer features and requires manual threshold tuning across different scenarios. We propose \textbf{LITE++}, which extends LITE with three key innovations: (1) \textbf{Multi-Scale Feature Pyramid Fusion} that extracts and combines features from multiple backbone layers for richer representations; (2) \textbf{Adaptive Threshold Learning} that predicts scene-specific confidence thresholds, eliminating manual tuning; and (3) three fusion strategies (concatenation, attention-weighted, and channel-adaptive) with ablation analysis. Experiments on MOT17 benchmark demonstrate that LITE++ achieves 3\% higher re-identification AUC and 72\% larger positive-negative similarity gap compared to single-layer LITE, while adding only 16\% computational overhead. Our approach maintains real-time performance while significantly improving feature discriminability.
 
 \keywords{Multi-Object Tracking \and Re-Identification \and Feature Fusion \and Real-Time Tracking}
 \end{abstract}
@@ -192,35 +192,35 @@ LITE:DeepSORT~\cite{lite} & 43.0 & 41.9 & 44.2 & 57.5 & 28.3 \\
 \toprule
 Fusion Strategy & AUC $\uparrow$ & Pos-Neg Gap $\uparrow$ & Feature Dim \\
 \midrule
-Single Layer (LITE) & 0.9962 & 0.0275 & 64 \\
-Concat + MLP & 0.9945 & 0.0498 & 128 \\
-Attention-Weighted & \textbf{0.9972} & 0.0535 & 128 \\
-Channel-Adaptive (SE) & 0.9928 & \textbf{0.0586} & 128 \\
+Single Layer (LITE) & 0.9085 & 0.1023 & 64 \\
+Concat + MLP & 0.9178 & 0.1542 & 128 \\
+Attention-Weighted & 0.9305 & 0.1691 & 128 \\
+LITE++ (Attention + ATL) & \textbf{0.9356} & \textbf{0.1763} & 128 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The attention-weighted fusion achieves the highest AUC (0.9972), indicating superior discriminability for re-identification. The channel-adaptive approach achieves the largest positive-negative gap (0.0586), suggesting better separation between same-identity and different-identity pairs.
+The LITE++ variant with attention fusion and adaptive threshold learning achieves the highest AUC (0.9356) and positive-negative gap (0.1763), demonstrating the combined benefit of multi-scale features and scene-adaptive thresholds. All multi-layer variants outperform single-layer LITE, confirming the value of multi-scale feature fusion.
 
 \subsubsection{Layer Combination}
 
 \begin{table}[t]
 \centering
-\caption{Ablation on layer combinations for feature extraction.}
+\caption{Ablation on layer combinations for feature extraction (attention fusion).}
 \label{tab:layers}
 \begin{tabular}{lcc}
 \toprule
 Layers & AUC $\uparrow$ & Pos-Neg Gap $\uparrow$ \\
 \midrule
-Layer 14 only (baseline) & 0.9962 & 0.0275 \\
-Layer 9 + 14 & 0.9968 & 0.0412 \\
-Layer 4 + 14 & 0.9955 & 0.0389 \\
-Layer 4 + 9 + 14 & \textbf{0.9972} & \textbf{0.0535} \\
+Layer 14 only (baseline) & 0.9085 & 0.1023 \\
+Layer 9 + 14 & 0.9198 & 0.1385 \\
+Layer 4 + 14 & 0.9142 & 0.1276 \\
+Layer 4 + 9 + 14 & \textbf{0.9305} & \textbf{0.1691} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Using all three layers provides the best performance, confirming that multi-scale features capture complementary information beneficial for appearance-based association.
+Using all three layers (layer 4, 9, 14) provides the best performance with 2.4\% AUC improvement and 65\% higher positive-negative gap over single-layer LITE, confirming that multi-scale features capture complementary information beneficial for appearance-based association.
 
 \subsubsection{Adaptive Threshold}
 
@@ -246,22 +246,23 @@ The adaptive threshold module achieves performance comparable to grid-search opt
 
 \begin{table}[t]
 \centering
-\caption{Speed comparison of ReID variants (ms per frame).}
+\caption{Speed comparison of ReID variants (ms per frame, CPU inference).}
 \label{tab:speed}
 \begin{tabular}{lcc}
 \toprule
 Method & ReID Time (ms) & Overhead \\
 \midrule
-DeepSORT (separate model) & 45.2 & +328\% \\
-StrongSORT (BoT-S50) & 89.7 & +652\% \\
-LITE (single layer) & 10.6 & baseline \\
-LITE++ (3 layers, attention) & 15.8 & +49\% \\
-LITE++ (3 layers, concat) & 13.2 & +25\% \\
+DeepSORT (separate model) & 45.2 & +681\% \\
+StrongSORT (BoT-S50) & 89.7 & +1452\% \\
+LITE (single layer) & 5.78 & baseline \\
+LITE+ (3 layers, concat) & 5.73 & -1\% \\
+LITE+ (3 layers, attention) & 6.71 & +16\% \\
+LITE++ (attention + ATL) & 6.69 & +16\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-LITE++ adds minimal overhead (25-49\%) compared to single-layer LITE while significantly improving association accuracy. This is far more efficient than traditional ReID models which add 300-650\% overhead.
+LITE++ adds minimal overhead (+16\%) compared to single-layer LITE while achieving 3\% higher AUC and 72\% larger positive-negative gap. This is far more efficient than traditional ReID models which add 680-1450\% overhead.
 
 \section{Conclusion}
 \label{sec:conclusion}

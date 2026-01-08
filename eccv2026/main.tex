@@ -184,6 +184,13 @@ LITE:DeepSORT~\cite{lite} & 43.0 & 41.9 & 44.2 & 57.5 & 28.3 \\
 
 \subsubsection{Feature Fusion Strategy}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/roc_curves.pdf}
+\caption{ROC curves comparing re-identification discriminability across LITE variants. Multi-layer fusion methods (LITE+, LITE++) consistently outperform single-layer LITE, with LITE+ (concat) achieving the highest AUC.}
+\label{fig:roc}
+\end{figure}
+
 \begin{table}[t]
 \centering
 \caption{Ablation on fusion strategies. AUC measures re-identification discriminability.}
@@ -263,6 +270,20 @@ LITE++ (attention + ATL) & 6.69 & +16\% \\
 \end{table}
 
 LITE++ adds minimal overhead (+16\%) compared to single-layer LITE while achieving 3\% higher AUC and 72\% larger positive-negative gap. This is far more efficient than traditional ReID models which add 680-1450\% overhead.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/score_distributions.pdf}
+\caption{Similarity score distributions for positive (same identity) and negative (different identity) pairs across LITE variants. Multi-layer fusion achieves better separation between positive and negative pairs.}
+\label{fig:distributions}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\linewidth]{figures/tsne_litepp.pdf}
+\caption{t-SNE visualization of LITE++ feature embeddings on MOT17-02. Different colors represent different track identities. Features cluster well by identity, demonstrating discriminative power.}
+\label{fig:tsne}
+\end{figure}
 
 \section{Conclusion}
 \label{sec:conclusion}

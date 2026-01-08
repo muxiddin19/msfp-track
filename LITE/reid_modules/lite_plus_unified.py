@@ -299,6 +299,9 @@ class LITEPlusPlusUnified(nn.Module):
             for layer_name in self.layer_indices:
                 feat_map = self._multi_layer_features[layer_name]
 
+                # Move feature map to the correct device
+                feat_map = feat_map.to(self.device)
+
                 # Get feature map dimensions
                 _, c, fh, fw = feat_map.shape
 

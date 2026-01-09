@@ -1,5 +1,0 @@
-FOLDER_ID="17g2EM7h2CqAiKdfZjCtVmTILuLauPSC5"
-DOWNLOAD_DIR="demo/videos"
-mkdir -p "$DOWNLOAD_DIR"
-gdown --folder "$FOLDER_ID" -O "$DOWNLOAD_DIR"
-echo "Download completed! Videos saved in $DOWNLOAD_DIR."

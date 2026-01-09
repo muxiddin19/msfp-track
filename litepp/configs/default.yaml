@@ -1,0 +1,51 @@
+# LITE++ Default Configuration
+
+# Model settings
+model:
+  yolo_variant: yolov8m
+  weights: yolov8m.pt
+
+# Feature extraction
+features:
+  layers:
+    - layer4    # Early features (fine details)
+    - layer9    # Mid features
+    - layer14   # Late features (semantic)
+  fusion_type: attention  # concat, attention, adaptive
+  output_dim: 128
+  spatial_pool: mean  # mean, max, adaptive
+
+# Adaptive threshold
+adaptive_threshold:
+  enabled: true
+  min_threshold: 0.01
+  max_threshold: 0.50
+  default_threshold: 0.25
+  variant: single  # single, multi
+
+# Tracking parameters
+tracking:
+  tracker_type: deepsort
+  max_age: 30
+  n_init: 3
+  max_cosine_distance: 0.3
+  nn_budget: 100
+
+# Dataset paths
+data:
+  mot17_path: datasets/MOT17
+  mot20_path: datasets/MOT20
+
+# Evaluation
+evaluation:
+  metrics:
+    - HOTA
+    - DetA
+    - AssA
+    - MOTA
+    - IDF1
+  save_results: true
+  output_dir: results/
+
+# Hardware
+device: cuda:0

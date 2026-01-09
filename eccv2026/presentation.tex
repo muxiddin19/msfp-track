@@ -1,0 +1,791 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+
+% Theme and colors
+\usetheme{Madrid}
+\usecolortheme{whale}
+
+% Define ECCV colors
+\definecolor{eccvblue}{RGB}{0,82,147}
+\definecolor{eccvdark}{RGB}{0,51,102}
+\definecolor{eccvlight}{RGB}{230,240,250}
+\definecolor{accentgreen}{RGB}{0,150,80}
+\definecolor{accentorange}{RGB}{230,120,0}
+\definecolor{accentred}{RGB}{200,50,50}
+
+% Set colors
+\setbeamercolor{structure}{fg=eccvblue}
+\setbeamercolor{title}{fg=white,bg=eccvdark}
+\setbeamercolor{frametitle}{fg=white,bg=eccvblue}
+\setbeamercolor{block title}{fg=white,bg=eccvblue}
+\setbeamercolor{block body}{bg=eccvlight}
+\setbeamercolor{item}{fg=eccvblue}
+\setbeamercolor{alerted text}{fg=accentorange}
+
+% Packages
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{fontawesome5}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+% Remove navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+% Add page numbers
+\setbeamertemplate{footline}[frame number]
+
+% Custom commands
+\newcommand{\highlight}[1]{\textcolor{accentorange}{\textbf{#1}}}
+\newcommand{\checkmark}{\textcolor{accentgreen}{\faCheck}}
+\newcommand{\crossmark}{\textcolor{accentred}{\faTimes}}
+
+% Title information
+\title[LITE++]{\textbf{LITE++}: Multi-Scale Feature Fusion with\\Adaptive Thresholds for Real-Time MOT}
+\subtitle{ECCV 2026}
+\author[Toshpulatov et al.]{
+    Mukhiddin Toshpulatov$^{1,2}$ \quad Seungkyu Oh$^{3}$ \quad Suan Lee$^{4}$\\[0.3em]
+    Kuvandikov Jo'ra$^{2}$ \quad Gadaev Doniyor$^{5}$ \quad Wookey Lee$^{3}$
+}
+\institute[]{
+    \small $^{1}$Voice AI Research Institute, Inha University \quad $^{2}$National University of Uzbekistan\\
+    $^{3}$Inha University \quad $^{4}$Semyung University \quad $^{5}$Jizzakh State Pedagogical University
+}
+\date{}
+
+% Logo
+\titlegraphic{
+    \vspace{-1cm}
+    \begin{tikzpicture}
+        \node[rounded corners=5pt, fill=eccvblue!20, inner sep=8pt] {
+            \Large\textbf{\textcolor{eccvdark}{European Conference on Computer Vision 2026}}
+        };
+    \end{tikzpicture}
+}
+
+\begin{document}
+
+% Title slide
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+% Outline
+\begin{frame}{Outline}
+    \tableofcontents
+\end{frame}
+
+%==============================================================================
+\section{Motivation}
+%==============================================================================
+
+\begin{frame}{Multi-Object Tracking: The Challenge}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \textbf{Tracking-by-Detection Paradigm}
+            \begin{itemize}
+                \item Detect objects $\rightarrow$ Associate across frames
+                \item Association uses \highlight{motion} + \highlight{appearance} cues
+            \end{itemize}
+
+            \vspace{0.5cm}
+            \textbf{The Speed-Accuracy Trade-off}
+            \begin{itemize}
+                \item \textbf{Motion-only} (SORT, ByteTrack): Fast but fragile
+                \item \textbf{Separate ReID} (DeepSORT): Accurate but slow
+                \item \textbf{Joint embedding} (JDE, FairMOT): Requires retraining
+            \end{itemize}
+
+            \vspace{0.5cm}
+            \textbf{Key Question:}\\
+            \textit{Can we get ReID quality without ReID overhead?}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                % Speed-accuracy plot
+                \begin{axis}[
+                    xlabel={FPS},
+                    ylabel={HOTA (\%)},
+                    xmin=0, xmax=35,
+                    ymin=40, ymax=70,
+                    grid=major,
+                    grid style={dashed, gray!30},
+                    width=6.5cm,
+                    height=5.5cm,
+                    legend pos=south east,
+                    legend style={font=\tiny}
+                ]
+                % Motion-only
+                \addplot[only marks, mark=square*, blue!70, mark size=3pt]
+                    coordinates {(29.7,54.8) (28.5,55.1)};
+                % Separate ReID
+                \addplot[only marks, mark=triangle*, red!70, mark size=3pt]
+                    coordinates {(13.7,45.6) (5.1,55.6) (9.2,56.3)};
+                % LITE paradigm
+                \addplot[only marks, mark=*, green!70!black, mark size=4pt]
+                    coordinates {(28.3,61.1)};
+                \addplot[only marks, mark=star, orange, mark size=5pt]
+                    coordinates {(26.1,63.2)};
+
+                \legend{Motion-only, Separate ReID, LITE, \textbf{LITE++}}
+                \end{axis}
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{LITE Paradigm: A Middle Ground}
+    \begin{block}{Key Insight (ICONIP 2024)}
+        Extract appearance features \textbf{directly from detector backbone} during inference\\
+        $\rightarrow$ No separate ReID model, \textbf{2-10$\times$ speedup}
+    \end{block}
+
+    \vspace{0.3cm}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{LITE Advantages:}
+            \begin{itemize}
+                \item[\checkmark] No additional model inference
+                \item[\checkmark] No detector retraining
+                \item[\checkmark] Works with any pretrained YOLO
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{LITE Limitations:}
+            \begin{itemize}
+                \item[\crossmark] Single-layer features only
+                \item[\crossmark] Manual threshold tuning
+                \item[\crossmark] MOT17: $\tau$=0.25, MOT20: $\tau$=0.05
+            \end{itemize}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.5cm}
+    \begin{center}
+        \begin{tikzpicture}
+            \node[draw, rounded corners, fill=accentorange!20, text width=10cm, align=center, inner sep=10pt] {
+                \textbf{LITE++:} Multi-scale fusion + Adaptive thresholds\\
+                $\rightarrow$ \textbf{+2.1\% HOTA} with only \textbf{+16\% overhead}
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+%==============================================================================
+\section{LITE++ Method}
+%==============================================================================
+
+\begin{frame}{LITE++ Architecture Overview}
+    \begin{center}
+        \begin{tikzpicture}[
+            scale=0.75, transform shape,
+            box/.style={draw, rounded corners, minimum height=0.8cm, align=center, font=\small},
+            layer/.style={box, fill=blue!20, minimum width=1.8cm},
+            fusion/.style={box, fill=green!20, minimum width=2.5cm},
+            output/.style={box, fill=orange!20, minimum width=2cm}
+        ]
+
+        % Input
+        \node[box, fill=gray!20, minimum width=1.5cm] (input) at (0,0) {Input\\Image};
+
+        % Backbone
+        \node[box, fill=eccvblue!30, minimum width=2cm, minimum height=3cm] (backbone) at (2.5,0) {YOLOv8\\Backbone\\(frozen)};
+
+        % Layers
+        \node[layer] (l4) at (5.5,1.2) {Layer 4\\64ch};
+        \node[layer] (l9) at (5.5,0) {Layer 9\\256ch};
+        \node[layer] (l14) at (5.5,-1.2) {Layer 14\\192ch};
+
+        % RoIAlign
+        \node[box, fill=purple!20, minimum width=1.5cm] (roi) at (8,0) {RoIAlign\\$7\times7$};
+
+        % Fusion
+        \node[fusion] (fusion) at (10.8,0) {Instance\\Adaptive\\Attention};
+
+        % Outputs
+        \node[output] (feat) at (13.5,0.6) {Features\\128-dim};
+        \node[output] (atl) at (13.5,-0.8) {Threshold\\$\tau$};
+
+        % ATL module
+        \node[box, fill=red!20, minimum width=1.8cm] (atlmod) at (10.8,-2) {ATL + EMA};
+
+        % Detections
+        \node[box, fill=yellow!30, minimum width=1.5cm] (det) at (8,-2) {Public\\Detections};
+
+        % Arrows
+        \draw[->, thick] (input) -- (backbone);
+        \draw[->, thick] (backbone) -- (l4);
+        \draw[->, thick] (backbone) -- (l9);
+        \draw[->, thick] (backbone) -- (l14);
+        \draw[->, thick] (l4) -- (roi);
+        \draw[->, thick] (l9) -- (roi);
+        \draw[->, thick] (l14) -- (roi);
+        \draw[->, thick] (roi) -- (fusion);
+        \draw[->, thick] (fusion) -- (feat);
+        \draw[->, thick] (l14) |- (atlmod);
+        \draw[->, thick] (atlmod) -- (atl);
+        \draw[->, thick, dashed] (det) -- (roi);
+
+        \end{tikzpicture}
+    \end{center}
+
+    \vspace{0.3cm}
+    \textbf{Two Key Innovations:}
+    \begin{enumerate}
+        \item \textbf{Multi-Scale Feature Pyramid Fusion (MSFP):} Combine layers 4, 9, 14 via RoIAlign + attention
+        \item \textbf{Adaptive Threshold Learning (ATL):} Predict scene-specific $\tau$ with EMA smoothing
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Multi-Scale Feature Pyramid Fusion (MSFP)}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{Why Multi-Scale?}
+            \begin{itemize}
+                \item \textbf{Layer 4} (stride 4): Fine details, edges
+                \item \textbf{Layer 9} (stride 16): Mid-level patterns
+                \item \textbf{Layer 14} (stride 32): Semantic features
+            \end{itemize}
+
+            \vspace{0.4cm}
+            \textbf{RoIAlign Extraction}
+            \begin{itemize}
+                \item Precise spatial alignment
+                \item Critical for small objects
+                \item Bilinear interpolation for fractional coords
+            \end{itemize}
+
+            \vspace{0.2cm}
+            \begin{equation*}
+                f_i^{(l)} = \text{RoIAlign}(F^{(l)}, b_i, 7\times7)
+            \end{equation*}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{tikzpicture}[scale=0.7]
+                % Feature pyramid visualization
+                \fill[blue!10] (0,0) rectangle (4,4);
+                \fill[blue!20] (0.5,0.5) rectangle (3.5,3.5);
+                \fill[blue!30] (1,1) rectangle (3,3);
+                \fill[blue!40] (1.5,1.5) rectangle (2.5,2.5);
+
+                % Labels
+                \node at (2,-0.4) {\small Layer 4 (H/4)};
+                \node at (4.3,3.5) {\small Layer 9};
+                \node at (4.3,2.5) {\small Layer 14};
+
+                % RoI box
+                \draw[red, very thick, dashed] (1.2,1.8) rectangle (2.8,3.2);
+                \node[red, font=\small] at (2,3.5) {RoI};
+
+                % Arrow
+                \draw[->, thick, accentorange] (4.5,2) -- (6,2);
+                \node[font=\tiny] at (5.25,2.3) {Align};
+
+                % Aligned features
+                \fill[green!20] (6.2,1) rectangle (7.2,3);
+                \fill[green!30] (6.4,1.2) rectangle (7,2.8);
+                \fill[green!40] (6.5,1.4) rectangle (6.9,2.6);
+                \node[font=\small] at (6.7,0.6) {$7\times7$};
+            \end{tikzpicture}
+
+            \vspace{0.3cm}
+            \textbf{RoIAlign vs Alternatives:}
+            \begin{center}
+            \begin{tabular}{lc}
+                \toprule
+                Method & AssA \\
+                \midrule
+                Nearest crop & 61.2 \\
+                Bilinear & 61.9 \\
+                \textbf{RoIAlign} & \textbf{62.5} \\
+                \bottomrule
+            \end{tabular}
+            \end{center}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Instance-Adaptive Attention Fusion}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \textbf{Key Innovation:} Per-instance attention weights
+
+            \vspace{0.3cm}
+            \textbf{Attention Computation:}
+            \begin{equation*}
+                \alpha_i = \text{softmax}(W_\alpha \cdot [f_i^{(4)}; f_i^{(9)}; f_i^{(14)}])
+            \end{equation*}
+
+            \textbf{Weighted Fusion:}
+            \begin{equation*}
+                f_i = \sum_l \alpha_i^{(l)} \cdot \text{Proj}^{(l)}(f_i^{(l)})
+            \end{equation*}
+
+            \vspace{0.3cm}
+            \textbf{Why Instance-Adaptive?}
+            \begin{itemize}
+                \item Small objects $\rightarrow$ more weight on Layer 4
+                \item Occluded $\rightarrow$ more weight on semantic Layer 14
+                \item Learned automatically from data
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \textbf{Fusion Strategy Comparison:}
+            \vspace{0.2cm}
+
+            \begin{tikzpicture}[scale=0.8]
+                \begin{axis}[
+                    ybar,
+                    width=6cm,
+                    height=5cm,
+                    ylabel={AssA (\%)},
+                    symbolic x coords={Single, Concat, Global, Instance, SE},
+                    xtick=data,
+                    x tick label style={rotate=45, anchor=east, font=\tiny},
+                    ymin=59, ymax=63,
+                    bar width=12pt,
+                    nodes near coords,
+                    nodes near coords style={font=\tiny},
+                    every node near coord/.append style={above},
+                ]
+                \addplot[fill=blue!40] coordinates {
+                    (Single,60.8) (Concat,62.1) (Global,61.8) (Instance,62.5) (SE,62.2)
+                };
+                \end{axis}
+            \end{tikzpicture}
+
+            \vspace{0.2cm}
+            \textcolor{accentgreen}{\textbf{Instance-adaptive attention wins!}}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Adaptive Threshold Learning (ATL)}
+    \begin{columns}[T]
+        \begin{column}{0.52\textwidth}
+            \textbf{Problem:} Optimal $\tau$ varies by scene
+            \begin{itemize}
+                \item MOT17 (sparse): $\tau^* \approx 0.25$
+                \item MOT20 (crowded): $\tau^* \approx 0.05$
+            \end{itemize}
+
+            \vspace{0.3cm}
+            \textbf{Solution:} Learn to predict $\tau$ from scene features
+
+            \begin{equation*}
+                \tau_{\text{raw}} = \sigma(\text{MLP}(\text{GAP}(F^{(14)}))) \cdot 0.49 + 0.01
+            \end{equation*}
+
+            \vspace{0.3cm}
+            \textbf{Temporal Smoothing (EMA):}
+            \begin{equation*}
+                \tau_t = 0.9 \cdot \tau_{t-1} + 0.1 \cdot \tau_{\text{raw}}
+            \end{equation*}
+
+            Prevents frame-to-frame oscillations
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textbf{ATL Ablation:}
+            \vspace{0.2cm}
+
+            \begin{tabular}{lcc}
+                \toprule
+                Config & MOT17 & MOT20 \\
+                \midrule
+                Fixed $\tau$=0.25 & 62.1 & 51.2 \\
+                Fixed $\tau$=0.10 & 61.5 & 53.8 \\
+                \midrule
+                ATL (per-frame) & 62.4 & 53.5 \\
+                \rowcolor{green!20}
+                \textbf{ATL (EMA)} & \textbf{63.0} & \textbf{54.5} \\
+                \bottomrule
+            \end{tabular}
+
+            \vspace{0.4cm}
+            \textbf{ByteTrack Integration:}
+            \begin{itemize}
+                \item ATL predicts offset $\Delta\tau$
+                \item $\tau_h = 0.5 + \Delta\tau$
+                \item $\tau_l = 0.05 + \Delta\tau/2$
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%==============================================================================
+\section{Experiments}
+%==============================================================================
+
+\begin{frame}{Experimental Setup}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{Datasets}
+            \begin{itemize}
+                \item \textbf{MOT17:} 7 train, 7 test sequences
+                \item \textbf{MOT20:} 4 train, 4 test (crowded)
+            \end{itemize}
+
+            \vspace{0.4cm}
+            \textbf{Protocol}
+            \begin{itemize}
+                \item \highlight{Public detections} (fair comparison)
+                \item TrackEval v1.0.1
+                \item Official server submissions
+            \end{itemize}
+
+            \vspace{0.4cm}
+            \textbf{Metrics}
+            \begin{itemize}
+                \item \textbf{HOTA} (primary) = $\sqrt{\text{DetA} \times \text{AssA}}$
+                \item IDF1, MOTA, IDSW
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Implementation}
+            \begin{itemize}
+                \item Detector: YOLOv8m (frozen)
+                \item Feature dim: 128
+                \item Hardware: RTX 3090
+            \end{itemize}
+
+            \vspace{0.4cm}
+            \textbf{Training}
+            \begin{itemize}
+                \item Fusion: Triplet loss, MOT17-train
+                \item ATL: MSE vs grid-searched $\tau^*$
+                \item 50 epochs, Adam, lr=$10^{-4}$
+            \end{itemize}
+
+            \vspace{0.4cm}
+            \textbf{Overhead}
+            \begin{itemize}
+                \item MSFP: 67.3K params, 0.8ms
+                \item ATL: 12.4K params, 0.3ms
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Main Results: MOT17 Test Set}
+    \begin{center}
+    \resizebox{0.95\textwidth}{!}{
+    \begin{tabular}{lcccccc}
+        \toprule
+        Method & \textbf{HOTA}$\uparrow$ & AssA$\uparrow$ & DetA$\uparrow$ & IDF1$\uparrow$ & IDSW$\downarrow$ & FPS$\uparrow$ \\
+        \midrule
+        \multicolumn{7}{l}{\textit{Separate ReID models}} \\
+        DeepSORT & 45.6 & 45.5 & 45.8 & 57.1 & 2008 & 13.7 \\
+        StrongSORT & 55.6 & 55.2 & 56.0 & 69.3 & 1428 & 5.1 \\
+        BoTSORT & 56.3 & 55.8 & 56.8 & 69.8 & 1212 & 9.2 \\
+        \midrule
+        \multicolumn{7}{l}{\textit{Motion-only / Hybrid}} \\
+        ByteTrack & 54.8 & 51.9 & 57.9 & 66.3 & 2196 & 29.7 \\
+        OC-SORT & 55.1 & 54.2 & 56.0 & 67.5 & 1950 & 28.5 \\
+        Deep OC-SORT & 56.8 & 55.5 & 58.2 & 68.8 & 1842 & 24.2 \\
+        \midrule
+        \multicolumn{7}{l}{\textit{LITE paradigm (ours)}} \\
+        LITE & 61.1 & 60.8 & 61.5 & 73.2 & 1876 & 28.3 \\
+        LITE+ (attention) & 62.8 & 62.5 & 63.1 & 75.2 & 1598 & 26.5 \\
+        \rowcolor{green!20}
+        \textbf{LITE++} & \textbf{63.2} & \textbf{63.0} & \textbf{63.4} & \textbf{75.8} & \textbf{1512} & 26.1 \\
+        \bottomrule
+    \end{tabular}
+    }
+    \end{center}
+
+    \vspace{0.3cm}
+    \begin{center}
+        \begin{tikzpicture}
+            \node[draw, rounded corners, fill=accentgreen!20, inner sep=8pt] {
+                \textbf{LITE++:} +2.1 HOTA over LITE, +6.9 over BoTSORT, \textbf{5$\times$ faster than StrongSORT}
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Main Results: MOT20 Test Set (Crowded)}
+    \begin{center}
+    \resizebox{0.85\textwidth}{!}{
+    \begin{tabular}{lcccccc}
+        \toprule
+        Method & \textbf{HOTA}$\uparrow$ & AssA$\uparrow$ & DetA$\uparrow$ & IDF1$\uparrow$ & IDSW$\downarrow$ & FPS$\uparrow$ \\
+        \midrule
+        DeepSORT & 36.2 & 35.8 & 36.6 & 45.1 & 4578 & 8.5 \\
+        ByteTrack & 47.3 & 44.8 & 49.9 & 57.8 & 3012 & 17.2 \\
+        OC-SORT & 48.5 & 47.2 & 49.8 & 59.2 & 2845 & 16.8 \\
+        BoTSORT & 49.5 & 48.3 & 50.8 & 61.3 & 2512 & 7.1 \\
+        \midrule
+        LITE & 52.8 & 51.5 & 54.2 & 64.5 & 2156 & 18.5 \\
+        LITE+ (attention) & 54.1 & 53.2 & 55.0 & 66.2 & 1978 & 17.2 \\
+        \rowcolor{green!20}
+        \textbf{LITE++} & \textbf{54.8} & \textbf{54.0} & \textbf{55.6} & \textbf{67.1} & \textbf{1845} & 16.8 \\
+        \bottomrule
+    \end{tabular}
+    }
+    \end{center}
+
+    \vspace{0.5cm}
+    \textbf{Key Observations:}
+    \begin{itemize}
+        \item ATL automatically adapts to crowded scenes (predicts lower $\tau$)
+        \item +2.0 HOTA over LITE, demonstrating cross-scene generalization
+        \item Multi-scale features help with heavy occlusions
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Speed-Accuracy Trade-off}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \begin{tikzpicture}[scale=0.85]
+                \begin{axis}[
+                    xlabel={FPS (Frames Per Second)},
+                    ylabel={HOTA (\%)},
+                    xmin=0, xmax=35,
+                    ymin=42, ymax=66,
+                    grid=major,
+                    grid style={dashed, gray!30},
+                    width=8cm,
+                    height=6.5cm,
+                    legend pos=south east,
+                    legend style={font=\scriptsize}
+                ]
+                % Separate ReID
+                \addplot[only marks, mark=triangle*, red!70, mark size=4pt]
+                    coordinates {(13.7,45.6) (5.1,55.6) (9.2,56.3)};
+                \addlegendentry{Separate ReID}
+
+                % Motion-only
+                \addplot[only marks, mark=square*, blue!70, mark size=4pt]
+                    coordinates {(29.7,54.8) (28.5,55.1) (24.2,56.8)};
+                \addlegendentry{Motion/Hybrid}
+
+                % LITE
+                \addplot[only marks, mark=o, green!60!black, mark size=4pt]
+                    coordinates {(28.3,61.1) (26.5,62.8)};
+                \addlegendentry{LITE variants}
+
+                % LITE++
+                \addplot[only marks, mark=star, orange, mark size=7pt]
+                    coordinates {(26.1,63.2)};
+                \addlegendentry{\textbf{LITE++}}
+
+                % Labels
+                \node[font=\tiny] at (axis cs:13.7,44) {DeepSORT};
+                \node[font=\tiny] at (axis cs:5.1,54) {StrongSORT};
+                \node[font=\tiny] at (axis cs:29.7,53.2) {ByteTrack};
+                \node[font=\tiny] at (axis cs:28.3,62.5) {LITE};
+                \node[font=\scriptsize, orange] at (axis cs:26.1,64.5) {\textbf{LITE++}};
+                \end{axis}
+            \end{tikzpicture}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \textbf{Timing Breakdown (ms/frame)}
+            \vspace{0.3cm}
+
+            \begin{tabular}{lcc}
+                \toprule
+                Component & LITE & LITE++ \\
+                \midrule
+                Detection & 28.5 & 28.5 \\
+                ReID & 5.8 & 6.7 \\
+                Association & 1.8 & 2.0 \\
+                \midrule
+                \textbf{Total} & 36.1 & 37.2 \\
+                \textbf{FPS} & 27.7 & 26.9 \\
+                \bottomrule
+            \end{tabular}
+
+            \vspace{0.5cm}
+            \textcolor{accentgreen}{\faCheck} \textbf{Only +1.1ms overhead}\\
+            \textcolor{accentgreen}{\faCheck} \textbf{+2.1 HOTA gain}\\
+            \textcolor{accentgreen}{\faCheck} \textbf{Real-time: 26+ FPS}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Ablation: Layer Combinations}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{center}
+            \begin{tabular}{lccc}
+                \toprule
+                Layers & AUC & Gap & AssA \\
+                \midrule
+                L14 only & 0.941 & 0.069 & 60.8 \\
+                L4 + L14 & 0.951 & 0.089 & 61.5 \\
+                L9 + L14 & 0.955 & 0.095 & 61.9 \\
+                \rowcolor{green!20}
+                \textbf{L4+L9+L14} & \textbf{0.962} & \textbf{0.112} & \textbf{62.5} \\
+                L4+L9+L14+L17 & 0.960 & 0.108 & 62.3 \\
+                \bottomrule
+            \end{tabular}
+            \end{center}
+
+            \vspace{0.5cm}
+            \textbf{Finding:} 3 layers optimal; 4th layer adds redundancy
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{tikzpicture}[scale=0.8]
+                \begin{axis}[
+                    ybar,
+                    width=6.5cm,
+                    height=5.5cm,
+                    ylabel={AssA (\%)},
+                    symbolic x coords={L14, L4+14, L9+14, 3-layer, 4-layer},
+                    xtick=data,
+                    x tick label style={rotate=30, anchor=east, font=\tiny},
+                    ymin=59.5, ymax=63,
+                    bar width=14pt,
+                    nodes near coords,
+                    nodes near coords style={font=\tiny},
+                ]
+                \addplot[fill=eccvblue!60] coordinates {
+                    (L14,60.8) (L4+14,61.5) (L9+14,61.9) (3-layer,62.5) (4-layer,62.3)
+                };
+                \end{axis}
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%==============================================================================
+\section{Visualizations}
+%==============================================================================
+
+\begin{frame}{ReID Discriminability: ROC \& Distributions}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{ROC Curves}
+            \begin{center}
+                \includegraphics[width=0.9\textwidth]{figures/roc_curves.png}
+            \end{center}
+            Multi-layer fusion improves AUC significantly
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Score Distributions}
+            \begin{center}
+                \includegraphics[width=0.9\textwidth]{figures/score_distributions.png}
+            \end{center}
+            Better separation between positive/negative pairs
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{t-SNE Visualization}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \begin{center}
+                \includegraphics[width=0.95\textwidth]{figures/tsne_litepp.png}
+            \end{center}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \vspace{1cm}
+            \textbf{Key Observations:}
+            \begin{itemize}
+                \item Clear identity clusters
+                \item Good separation between tracks
+                \item Consistent within-track similarity
+            \end{itemize}
+
+            \vspace{0.5cm}
+            \textbf{Embedding Quality:}
+            \begin{itemize}
+                \item AUC: 0.962
+                \item Pos-Neg Gap: 0.112
+                \item 128-dim features
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%==============================================================================
+\section{Conclusion}
+%==============================================================================
+
+\begin{frame}{Limitations \& Future Work}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{Current Limitations}
+            \begin{itemize}
+                \item[\crossmark] Domain generalization (aerial, fish-eye)
+                \item[\crossmark] Pedestrian-only evaluation
+                \item[\crossmark] Requires detector forward pass
+                \item[\crossmark] DanceTrack: appearance-ambiguous
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Future Directions}
+            \begin{itemize}
+                \item[\faRocket] Multi-class tracking
+                \item[\faRocket] Transformer backbones (RT-DETR)
+                \item[\faRocket] Motion-centric benchmarks
+                \item[\faRocket] Stronger domain adaptation
+            \end{itemize}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.6cm}
+    \begin{center}
+        \begin{tabular}{lcc}
+            \toprule
+            Benchmark & Strengths & Challenges \\
+            \midrule
+            MOT17/20 & Appearance helps & Standard pedestrian \\
+            DanceTrack & Motion-centric & Similar appearances \\
+            \bottomrule
+        \end{tabular}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Conclusion}
+    \begin{block}{Summary}
+        \textbf{LITE++} extends LITE with multi-scale fusion and adaptive thresholds for improved real-time MOT
+    \end{block}
+
+    \vspace{0.3cm}
+    \textbf{Key Contributions:}
+    \begin{enumerate}
+        \item \textbf{MSFP:} RoIAlign + instance-adaptive attention from 3 backbone layers
+        \item \textbf{ATL:} Scene-specific threshold prediction with EMA smoothing
+        \item \textbf{Results:} 63.2 HOTA on MOT17, +2.1\% over LITE, real-time 26 FPS
+    \end{enumerate}
+
+    \vspace{0.5cm}
+    \begin{center}
+        \begin{tikzpicture}
+            \node[draw, rounded corners, fill=eccvblue!20, inner sep=12pt, text width=10cm, align=center] {
+                \large\textbf{Code:} \url{https://anonymous.4open.science/r/lite-plus-plus}
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}[plain]
+    \begin{center}
+        \vspace{2cm}
+        {\Huge\textcolor{eccvblue}{\textbf{Thank You!}}}
+
+        \vspace{1cm}
+        {\Large Questions?}
+
+        \vspace{1.5cm}
+        \begin{tikzpicture}
+            \node[draw, rounded corners, fill=gray!10, inner sep=15pt] {
+                \begin{tabular}{cl}
+                    \faEnvelope & muhiddin@inha.ac.kr \\
+                    \faGithub & anonymous.4open.science/r/lite-plus-plus \\
+                    \faFileAlt & ECCV 2026 Paper \#1234 \\
+                \end{tabular}
+            };
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\end{document}

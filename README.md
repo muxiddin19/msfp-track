@@ -121,9 +121,6 @@ python experiments/train_adaptive_threshold.py --extract_features --dataset MOT1
     author={Anonymous},
     booktitle={European Conference on Computer Vision (ECCV)},
     year={2026}
-}
-
-}
 ```
 
 ## License

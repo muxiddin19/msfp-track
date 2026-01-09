@@ -123,11 +123,6 @@ python experiments/train_adaptive_threshold.py --extract_features --dataset MOT1
     year={2026}
 }
 
-@inproceedings{lite_iconip2024,
-    title={LITE: A Paradigm Shift in Multi-Object Tracking},
-    author={Mukhiddinov, Mukhriddin and Cho, Jinsoo},
-    booktitle={International Conference on Neural Information Processing (ICONIP)},
-    year={2024}
 }
 ```
 

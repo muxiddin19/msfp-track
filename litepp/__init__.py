@@ -1,16 +1,17 @@
 """
-LITE++: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time MOT
+MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time MOT
 
-This package implements LITE++, an efficient approach to multi-object tracking
-that extracts rich appearance features from multiple backbone layers and
-predicts scene-adaptive confidence thresholds.
+This package implements MSFP-Track, an efficient approach to multi-object tracking
+that extracts rich appearance features from multiple backbone layers using RoIAlign
+and instance-adaptive attention, and predicts scene-adaptive confidence thresholds.
 
 Key Components:
-- Multi-Scale Feature Pyramid (MSFP): Extracts features from multiple YOLO layers
-- Feature Fusion Module: Attention-weighted fusion of multi-scale features
-- Adaptive Threshold Learning (ATL): Scene-aware confidence threshold prediction
+- Multi-Scale Feature Pyramid (MSFP): Extracts features from YOLOv8 layers 4, 9, 14
+- Feature Fusion Module: Instance-adaptive attention-weighted fusion
+- Adaptive Threshold Learning (ATL): Scene-aware threshold prediction with EMA smoothing
 
-For research inquiries, please contact the authors.
+Paper: ECCV 2026 (Under Review)
+Code: https://anonymous.4open.science/r/msfp-track
 """
 
 __version__ = "1.0.0"

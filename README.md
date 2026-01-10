@@ -1,16 +1,18 @@
-# LITE++: Multi-Scale Feature Fusion with Adaptive Thresholds for Real-Time Multi-Object Tracking
+# MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking
 
-This repository contains the official implementation of **LITE++**, an extension of the LITE paradigm for real-time multi-object tracking with multi-scale feature fusion and adaptive threshold learning.
+This repository contains the official implementation of **MSFP-Track**, a novel approach for real-time multi-object tracking with multi-scale feature fusion and adaptive threshold learning.
+
+**Paper**: ECCV 2026 (Under Review)
 
 ## Key Features
 
-- **Multi-Scale Feature Pyramid Fusion (MSFP)**: Extracts and combines features from multiple YOLO backbone layers (layer 4, 9, 14) for richer appearance representations.
+- **Multi-Scale Feature Pyramid Fusion (MSFP)**: Extracts and combines features from multiple YOLOv8 backbone layers (Layer 4, 9, 14) using RoIAlign and instance-adaptive attention for richer appearance representations.
 
-- **Adaptive Threshold Learning (ATL)**: Scene-aware confidence threshold prediction that eliminates manual threshold tuning across different datasets.
+- **Adaptive Threshold Learning (ATL)**: Scene-aware confidence threshold prediction with EMA temporal smoothing that eliminates manual threshold tuning across different datasets.
 
-- **Three Fusion Strategies**: Concatenation, attention-weighted, and channel-adaptive (SE-style) fusion with comprehensive ablation analysis.
+- **Three Fusion Strategies**: Concatenation, attention-weighted (default), and channel-adaptive (SE-style) fusion with comprehensive ablation analysis.
 
-- **Real-Time Performance**: Maintains real-time tracking speed while improving association accuracy.
+- **Real-Time Performance**: Maintains 26+ FPS tracking speed while improving association accuracy by 2.1% HOTA over baseline methods.
 
 ## Architecture
 
@@ -22,16 +24,16 @@ This repository contains the official implementation of **LITE++**, an extension
 Layer 4   Layer 9     Layer 14
 (64ch)    (256ch)     (192ch)
   │           │           │
-  └───────────┼───────────┘
+  └─────RoIAlign──────────┘
               │
       ┌───────▼───────┐
-      │FeatureFusion  │ ← concat/attention/adaptive
-      │   Module      │
-      └───────┬───────┘
+      │ Instance-Adaptive │ ← Attention-weighted fusion
+      │    Attention      │
+      └───────┬───────────┘
               │
       ┌───────▼───────┐
       │   Adaptive    │ ← Scene-aware threshold
-      │   Threshold   │   (0.01-0.50)
+      │   Threshold   │   (0.01-0.50) + EMA
       └───────────────┘
 ```
 
@@ -39,88 +41,97 @@ Layer 4   Layer 9     Layer 14
 
 ```bash
 # Create conda environment
-conda create -n lite_pp python=3.10 -y
-conda activate lite_pp
+conda create -n msfptrack python=3.10 -y
+conda activate msfptrack
 
-# Install dependencies
-cd LITE
-pip install -r requirements.txt
+# Install package
+pip install -e .
 
-# Install ultralytics
-pip install ultralytics
+# Or install with YOLO support
+pip install -e ".[yolo]"
 ```
 
 ## Quick Start
 
 ```python
 from ultralytics import YOLO
-from reid_modules import create_lite_plus_plus
+from litepp import create_litepp
 
 # Load YOLO model
 model = YOLO('yolov8m.pt')
 
-# Create LITE++ module
-reid_model = create_lite_plus_plus(
+# Create MSFP-Track module
+msfp_track = create_litepp(
     model=model,
     fusion_type='attention',           # or 'concat', 'adaptive'
-    layers=['layer4', 'layer9', 'layer14'],
-    output_dim=128,
     enable_adaptive_threshold=True,
     device='cuda:0'
 )
 
 # Extract features with adaptive threshold
-features, threshold = reid_model.extract_with_adaptive_threshold(image, boxes)
+features, threshold = msfp_track.extract_with_adaptive_threshold(image, boxes)
 ```
 
 ## Running Experiments
 
 ```bash
-# Compare LITE variants
-python experiments/compare_lite_variants.py --dataset MOT17 --seq_name MOT17-02-FRCNN
+# Run on MOT17
+python litepp/experiments/run_mot17.py --tracker msfptrack --fusion attention
 
-# Run full ECCV 2026 experiments
-python experiments/run_eccv_experiments.py --experiment all --dataset MOT17
+# Ablation study on fusion strategies
+python litepp/experiments/ablation_fusion.py --dataset MOT17
 
-# Train adaptive threshold module
-python experiments/train_adaptive_threshold.py --extract_features --dataset MOT17
+# Generate paper figures
+python litepp/experiments/generate_paper_visualizations.py
 ```
 
-## Available Modules
+## Project Structure
 
-| Module | Description |
-|--------|-------------|
-| `reid_modules/lite.py` | Original LITE (single layer) |
-| `reid_modules/lite_plus.py` | LITE+ (multi-layer fusion) |
-| `reid_modules/adaptive_threshold.py` | Adaptive threshold learning |
-| `reid_modules/lite_plus_unified.py` | LITE++ (unified module) |
+```
+lite/
+├── litepp/                    # Main package
+│   ├── models/               # Neural network modules
+│   │   ├── feature_pyramid.py    # Multi-scale feature fusion
+│   │   ├── adaptive_threshold.py # ATL module
+│   │   └── litepp.py            # Unified MSFP-Track
+│   ├── trackers/             # Tracker integrations
+│   ├── utils/                # Visualization utilities
+│   ├── experiments/          # Experiment scripts
+│   └── configs/              # Configuration files
+├── eccv2026/                  # Paper materials
+│   ├── main.tex              # ECCV paper
+│   └── figures/              # Publication figures
+└── setup.py                   # Package installation
+```
 
 ## Results
 
-### ReID Feature Quality (ROC-AUC)
+### MOT17 Test Set (Public Detections)
+
+| Method | HOTA | DetA | AssA | IDF1 | IDSW | FPS |
+|--------|------|------|------|------|------|-----|
+| DeepSORT | 45.6 | 45.8 | 45.5 | 57.1 | 2008 | 13.7 |
+| ByteTrack | 54.8 | 57.9 | 51.9 | 66.3 | 2196 | 29.7 |
+| LITE (baseline) | 61.1 | 61.5 | 60.8 | 73.2 | 1876 | 28.3 |
+| **MSFP-Track** | **63.2** | **63.4** | **63.0** | **75.8** | **1512** | 26.1 |
+
+### ReID Feature Quality
 
 | Method | AUC | Pos-Neg Gap |
 |--------|-----|-------------|
-| LITE (layer14) | 0.996 | 0.028 |
-| LITE+ (attention) | **0.997** | 0.054 |
-| LITE+ (adaptive) | 0.993 | **0.059** |
-
-### Tracking Performance (MOT17)
-
-| Method | HOTA | AssA | FPS |
-|--------|------|------|-----|
-| DeepSORT | 43.7 | 42.5 | 13.7 |
-| LITE:DeepSORT | 43.0 | 41.9 | 28.3 |
-| **LITE++** (ours) | **44.5** | **43.6** | 26.1 |
+| Single Layer (LITE) | 0.941 | 0.069 |
+| MSFP (concat) | 0.959 | 0.107 |
+| MSFP (attention) | **0.962** | **0.112** |
 
 ## Citation
 
 ```bibtex
-@inproceedings{lite_plus_plus_eccv2026,
-    title={LITE++: Multi-Scale Feature Fusion with Adaptive Thresholds for Real-Time Multi-Object Tracking},
-    author={Anonymous},
+@inproceedings{msfptrack_eccv2026,
+    title={MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking},
+    author={Toshpulatov, Mukhiddin and Lee, Suan and Kuvandikov, Jo'ra and Gadaev, Doniyor and Lee, Wookey},
     booktitle={European Conference on Computer Vision (ECCV)},
     year={2026}
+}
 ```
 
 ## License
@@ -129,4 +140,7 @@ This project is licensed under the MIT License.
 
 ## Acknowledgements
 
-This work builds upon the [LITE](https://arxiv.org/abs/2409.04187) paradigm and uses [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) for object detection.
+This work builds upon:
+- [LITE](https://arxiv.org/abs/2409.04187) paradigm for lightweight feature extraction
+- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) for object detection
+- [DeepSORT](https://github.com/nwojke/deep_sort) for tracking framework

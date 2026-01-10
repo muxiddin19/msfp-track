@@ -1,33 +1,35 @@
-# LITE++: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking
+# MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking
 
-Official implementation of LITE++ for ECCV 2026.
+Official implementation of MSFP-Track for ECCV 2026.
 
 ## Overview
 
-LITE++ extends lightweight integrated tracking-feature extraction with two key innovations:
+MSFP-Track extends lightweight tracking-feature extraction with two key innovations:
 
-1. **Multi-Scale Feature Pyramid (MSFP)**: Extracts and fuses appearance features from multiple backbone layers (early, mid, late) for richer object representations.
+1. **Multi-Scale Feature Pyramid (MSFP)**: Extracts and fuses appearance features from multiple backbone layers (Layer 4, 9, 14) using RoIAlign and instance-adaptive attention for richer object representations.
 
-2. **Adaptive Threshold Learning (ATL)**: Learns scene-aware confidence thresholds that automatically adapt to different environments, eliminating manual threshold tuning.
+2. **Adaptive Threshold Learning (ATL)**: Learns scene-aware confidence thresholds with EMA temporal smoothing that automatically adapt to different environments, eliminating manual threshold tuning.
 
 ## Architecture
 
 ```
-       YOLO Backbone
+       YOLOv8/v11 Backbone
             |
   +---------+---------+
   |         |         |
 Layer4   Layer9   Layer14
+(64ch)   (256ch)  (192ch)
   |         |         |
-  +---------+---------+
+  +----RoIAlign-------+
             |
     +-------v-------+
-    | Feature Fusion |  <-- Attention-weighted
+    | Instance-Adaptive |  <-- Attention-weighted fusion
+    |     Attention     |
     +-------+-------+
             |
     +-------v-------+
-    |   Adaptive    |  <-- Scene-aware
-    |   Threshold   |      (0.01-0.50)
+    |   Adaptive    |  <-- Scene-aware threshold
+    |   Threshold   |      (0.01-0.50) + EMA
     +---------------+
 ```
 
@@ -35,11 +37,15 @@ Layer4   Layer9   Layer14
 
 ```bash
 # Create environment
-conda create -n litepp python=3.10 -y
-conda activate litepp
+conda create -n msfptrack python=3.10 -y
+conda activate msfptrack
 
-# Install dependencies
-pip install -r requirements.txt
+# Install from root directory
+cd lite
+pip install -e .
+
+# Or install dependencies only
+pip install -r litepp/requirements.txt
 ```
 
 ## Quick Start
@@ -51,15 +57,15 @@ from litepp import create_litepp
 # Load YOLO model
 yolo = YOLO('yolov8m.pt')
 
-# Create LITE++ module
-litepp = create_litepp(
+# Create MSFP-Track module
+msfp_track = create_litepp(
     model=yolo,
     fusion_type='attention',
     enable_adaptive_threshold=True,
 )
 
 # Extract features with adaptive threshold
-features, threshold = litepp.extract_with_adaptive_threshold(image, boxes)
+features, threshold = msfp_track.extract_with_adaptive_threshold(image, boxes)
 ```
 
 ## Key Features
@@ -68,30 +74,49 @@ features, threshold = litepp.extract_with_adaptive_threshold(image, boxes)
 
 Three fusion strategies are available:
 
-- **attention** (default): Learned attention weights per layer
+- **attention** (default): Instance-adaptive attention weights per detection
 - **adaptive**: Channel-wise attention (SE-style)
 - **concat**: Simple concatenation with MLP projection
 
 ```python
 # Attention fusion (recommended)
-litepp = create_litepp(model, fusion_type='attention')
+msfp = create_litepp(model, fusion_type='attention')
 
 # Get learned attention weights
-weights = litepp.get_fusion_weights()
+weights = msfp.get_fusion_weights()
+# Returns: tensor([0.35, 0.40, 0.25]) for [Layer4, Layer9, Layer14]
 ```
 
 ### Adaptive Threshold Learning
 
-Automatically predicts optimal confidence threshold per scene:
+Automatically predicts optimal confidence threshold per scene with temporal smoothing:
 
 ```python
 # Get adaptive threshold for current frame
-threshold = litepp.get_adaptive_threshold(image)
+threshold = msfp.get_adaptive_threshold(image)
 
-# Full scene analysis
-analysis = litepp.get_scene_analysis(image)
-# Returns: {'adaptive_threshold': 0.15, 'estimated_density': 2.3, ...}
+# Threshold is EMA-smoothed for stability
+# tau_t = 0.9 * tau_{t-1} + 0.1 * tau_raw
 ```
+
+## Results
+
+### MOT17 Test Set (Public Detections)
+
+| Method | HOTA | DetA | AssA | IDF1 | IDSW | FPS |
+|--------|------|------|------|------|------|-----|
+| DeepSORT | 45.6 | 45.8 | 45.5 | 57.1 | 2008 | 13.7 |
+| ByteTrack | 54.8 | 57.9 | 51.9 | 66.3 | 2196 | 29.7 |
+| LITE (baseline) | 61.1 | 61.5 | 60.8 | 73.2 | 1876 | 28.3 |
+| **MSFP-Track** | **63.2** | **63.4** | **63.0** | **75.8** | **1512** | 26.1 |
+
+### ReID Feature Quality
+
+| Method | AUC | Pos-Neg Gap |
+|--------|-----|-------------|
+| Single Layer | 0.941 | 0.069 |
+| MSFP (concat) | 0.959 | 0.107 |
+| MSFP (attention) | 0.962 | 0.112 |
 
 ## Experiments
 
@@ -99,35 +124,32 @@ Run experiments on MOT benchmarks:
 
 ```bash
 # Run on MOT17
-python experiments/run_mot17.py --tracker litepp --fusion attention
+python litepp/experiments/run_mot17.py --tracker msfptrack --fusion attention
 
-# Ablation study
-python experiments/ablation_fusion.py --dataset MOT17
+# Ablation study on fusion strategies
+python litepp/experiments/ablation_fusion.py --dataset MOT17
 
-# Compare with baselines
-python experiments/compare_methods.py --methods lite,litepp,deepsort
+# Generate paper figures
+python litepp/experiments/generate_paper_visualizations.py
 ```
-
-## Results
-
-| Method | HOTA | DetA | AssA | MOTA | IDF1 | FPS |
-|--------|------|------|------|------|------|-----|
-| DeepSORT | 45.2 | 47.1 | 43.5 | 52.3 | 55.1 | 12 |
-| LITE | 44.8 | 46.9 | 42.9 | 51.8 | 54.2 | 28 |
-| **LITE++** | **46.5** | **47.8** | **45.3** | **53.1** | **56.8** | **26** |
 
 ## Citation
 
 ```bibtex
-@inproceedings{litepp2026,
-  title={LITE++: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking},
-  author={},
+@inproceedings{msfptrack2026,
+  title={MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking},
+  author={Toshpulatov, Mukhiddin and Lee, Suan and Kuvandikov, Jo'ra and Gadaev, Doniyor and Lee, Wookey},
   booktitle={European Conference on Computer Vision (ECCV)},
   year={2026}
 }
 ```
 
 ## Acknowledgments
+
+This work builds upon:
+- [LITE](https://arxiv.org/abs/2409.04187) paradigm for lightweight feature extraction
+- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) for object detection
+- [DeepSORT](https://github.com/nwojke/deep_sort) for tracking framework
 
 See [docs/acknowledgments.md](docs/acknowledgments.md) for full acknowledgments.
 

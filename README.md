@@ -128,7 +128,7 @@ lite/
 ```bibtex
 @inproceedings{msfptrack_eccv2026,
     title={MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking},
-    author={Toshpulatov, Mukhiddin and Lee, Suan and Kuvandikov, Jo'ra and Gadaev, Doniyor and Lee, Wookey},
+    author={Anonymous},
     booktitle={European Conference on Computer Vision (ECCV)},
     year={2026}
 }

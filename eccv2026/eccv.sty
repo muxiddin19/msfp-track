@@ -1,0 +1,44 @@
+% ECCV 2026 Style File (minimal version for compilation)
+% This is a placeholder - replace with official ECCV template for submission
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{eccv}[2026/01/01 ECCV 2026 style]
+
+% Process options
+\newif\if@eccvfinal
+\@eccvfinalfalse
+\DeclareOption{review}{\@eccvfinalfalse}
+\DeclareOption{final}{\@eccvfinaltrue}
+
+% Accept year and ID options
+\def\eccv@year{2026}
+\def\eccv@id{0000}
+\DeclareOption*{%
+  \@for\@tempa:=\CurrentOption\do{%
+    \expandafter\eccv@parse\@tempa\@nil
+  }%
+}
+\def\eccv@parse#1=#2\@nil{%
+  \@namedef{eccv@#1}{#2}%
+}
+
+\ProcessOptions\relax
+
+% Define ECCV blue color
+\RequirePackage{xcolor}
+\definecolor{eccvblue}{RGB}{0,82,147}
+
+% Page layout adjustments for LNCS
+\RequirePackage{geometry}
+
+% Add submission ID in header for review
+\if@eccvfinal\else
+  \RequirePackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhf{}
+  \fancyhead[C]{\small ECCV \eccv@year~Submission \#\eccv@id}
+  \fancyfoot[C]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+\fi
+
+\endinput

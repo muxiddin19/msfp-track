@@ -1,0 +1,245 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{sort,deepsort}
+\citation{deepsort}
+\citation{strongsort}
+\citation{jde,fairmot}
+\citation{lite}
+\@writefile{toc}{\contentsline {title}{MSFP-Track: Multi-Scale Feature Pyramid with Adaptive Thresholds for Real-Time Multi-Object Tracking}{1}{chapter.1}\protected@file@percent }
+\@writefile{toc}{\authcount {5}}
+\@writefile{toc}{\contentsline {author}{Mukhiddin Toshpulatov \and Suan Lee \and Kuvandikov Jo'ra Tursunbayevich \and Gadaev Doniyor \and Wookey Lee}{1}{chapter.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1.1}{}}
+\citation{bytetrack}
+\citation{jde,fairmot}
+\citation{sort}
+\citation{deepsort}
+\citation{bytetrack}
+\citation{ocsort}
+\citation{botsort}
+\citation{jde}
+\citation{fairmot}
+\citation{deft}
+\citation{tcbtrack}
+\citation{fasttracktr}
+\citation{fpn}
+\citation{augfpn}
+\citation{senet}
+\citation{sgt}
+\citation{busca}
+\citation{lite}
+\citation{adaptivethresh}
+\citation{bytetrack}
+\citation{boosttrack}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.1.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{2}{Related Work}{section.1.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Tracking-by-Detection}{2}{subsection.1.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Joint Detection and Embedding}{2}{subsection.1.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Feature Extraction and Fusion}{2}{subsection.1.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Adaptive Thresholding}{2}{subsection.1.2.4}\protected@file@percent }
+\citation{maskrcnn}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {MSFP-Track Architecture.} Given an input image, features are extracted from multiple YOLOv8 backbone layers (Layer 4, 9, 14). RoIAlign pools region features for each detection, which are then fused via instance-adaptive attention. The Adaptive Threshold module predicts scene-specific confidence thresholds using global features from Layer 14 with EMA temporal smoothing.\relax }}{3}{figure.caption.2}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:architecture}{{1}{3}{\textbf {MSFP-Track Architecture.} Given an input image, features are extracted from multiple YOLOv8 backbone layers (Layer 4, 9, 14). RoIAlign pools region features for each detection, which are then fused via instance-adaptive attention. The Adaptive Threshold module predicts scene-specific confidence thresholds using global features from Layer 14 with EMA temporal smoothing.\relax }{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{3}{section.1.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{3}{Method}{section.1.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Overview}{3}{subsection.1.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Multi-Scale Feature Pyramid Fusion}{3}{subsection.1.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{RoIAlign-based Feature Extraction}{3}{section*.3}\protected@file@percent }
+\citation{senet}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Instance-adaptive attention weights for different object characteristics. Small objects rely more on high-resolution Layer 4; occluded objects weight semantic Layer 14 features more heavily.\relax }}{4}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:attention_weights}{{2}{4}{Instance-adaptive attention weights for different object characteristics. Small objects rely more on high-resolution Layer 4; occluded objects weight semantic Layer 14 features more heavily.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Fusion Strategies}{4}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Adaptive Threshold Learning}{4}{subsection.1.3.3}\protected@file@percent }
+\newlabel{sec:atl}{{3.3}{4}{Adaptive Threshold Learning}{subsection.1.3.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Architecture}{4}{equation.1.3.6}\protected@file@percent }
+\citation{bytetrack}
+\citation{triplet}
+\citation{mot17}
+\citation{mot20}
+\citation{hota}
+\@writefile{toc}{\contentsline {subsubsection}{Temporal Smoothing}{5}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Interaction with Two-Stage Association}{5}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Training}{5}{subsection.1.3.4}\protected@file@percent }
+\newlabel{sec:training}{{3.4}{5}{Training}{subsection.1.3.4}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Threshold Module Training}{5}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Feature Fusion Training}{5}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{5}{section.1.4}\protected@file@percent }
+\newlabel{sec:experiments}{{4}{5}{Experiments}{section.1.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Experimental Setup}{5}{subsection.1.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Evaluation Protocol}{5}{section*.11}\protected@file@percent }
+\citation{deepsort}
+\citation{strongsort}
+\citation{botsort}
+\citation{sort}
+\citation{bytetrack}
+\citation{ocsort}
+\citation{deepocsort}
+\citation{jde}
+\citation{fairmot}
+\citation{lite}
+\citation{deepsort}
+\citation{bytetrack}
+\citation{ocsort}
+\citation{botsort}
+\citation{lite}
+\@writefile{toc}{\contentsline {subsubsection}{Implementation Details}{6}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}ReID Discriminability Metrics}{6}{subsection.1.4.2}\protected@file@percent }
+\newlabel{sec:reid_metrics}{{4.2}{6}{ReID Discriminability Metrics}{subsection.1.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Comparison with State-of-the-Art}{6}{subsection.1.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces MOT17 test set results with \textbf  {public detections}. $\dagger $: private detections. Best in \textbf  {bold}, second \underline  {underlined}. Subscripts show std.\nobreakspace  {}dev.\nobreakspace  {}over 3 runs for our methods.\relax }}{7}{table.caption.13}\protected@file@percent }
+\newlabel{tab:mot17}{{1}{7}{MOT17 test set results with \textbf {public detections}. $\dagger $: private detections. Best in \textbf {bold}, second \underline {underlined}. Subscripts show std.~dev.~over 3 runs for our methods.\relax }{table.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Ablation Studies}{7}{subsection.1.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Feature Fusion Strategy}{7}{table.caption.17}\protected@file@percent }
+\citation{personpath}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces MOT20 test set results with \textbf  {public detections}. Crowded scenarios with higher object density. Subscripts show std.\nobreakspace  {}dev.\nobreakspace  {}over 3 runs.\relax }}{8}{table.caption.14}\protected@file@percent }
+\newlabel{tab:mot20}{{2}{8}{MOT20 test set results with \textbf {public detections}. Crowded scenarios with higher object density. Subscripts show std.~dev.~over 3 runs.\relax }{table.caption.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Fusion strategy ablation on MOT17-train. AUC/Gap metrics defined in Sec.\nobreakspace  {}\ref  {sec:reid_metrics}. AssA from tracking evaluation on validation sequences.\relax }}{8}{table.caption.17}\protected@file@percent }
+\newlabel{tab:fusion}{{3}{8}{Fusion strategy ablation on MOT17-train. AUC/Gap metrics defined in Sec.~\ref {sec:reid_metrics}. AssA from tracking evaluation on validation sequences.\relax }{table.caption.17}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Layer Combination}{8}{table.caption.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Adaptive Threshold Analysis}{8}{table.caption.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Per-Sequence Analysis}{8}{table.caption.24}\protected@file@percent }
+\citation{adaptivethresh}
+\citation{sgt}
+\citation{busca}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Layer combination ablation (instance-adaptive attention fusion).\relax }}{9}{table.caption.19}\protected@file@percent }
+\newlabel{tab:layers}{{4}{9}{Layer combination ablation (instance-adaptive attention fusion).\relax }{table.caption.19}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces ATL ablation and interaction with ByteTrack two-stage association.\relax }}{9}{table.caption.21}\protected@file@percent }
+\newlabel{tab:twostage}{{5}{9}{ATL ablation and interaction with ByteTrack two-stage association.\relax }{table.caption.21}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Speed Analysis}{9}{subsection.1.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Comparison with Adaptive Threshold Heuristics}{9}{subsection.1.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Threshold Bounds Sensitivity}{9}{subsection.1.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Comparison with Recovery Methods}{9}{subsection.1.4.8}\protected@file@percent }
+\bibstyle{splncs04}
+\bibdata{main}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Per-sequence HOTA breakdown on MOT17-train showing robustness.\relax }}{10}{table.caption.24}\protected@file@percent }
+\newlabel{tab:perseq}{{6}{10}{Per-sequence HOTA breakdown on MOT17-train showing robustness.\relax }{table.caption.24}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Detailed timing breakdown (ms per frame). GPU: RTX 3090, CPU: i9-12900K. Batch size 1.\relax }}{10}{table.caption.25}\protected@file@percent }
+\newlabel{tab:speed}{{7}{10}{Detailed timing breakdown (ms per frame). GPU: RTX 3090, CPU: i9-12900K. Batch size 1.\relax }{table.caption.25}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion and Limitations}{10}{section.1.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{10}{Discussion and Limitations}{section.1.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{10}{section.1.6}\protected@file@percent }
+\newlabel{sec:conclusion}{{6}{10}{Conclusion}{section.1.6}{}}
+\bibcite{botsort}{1}
+\bibcite{sort}{2}
+\bibcite{ocsort}{3}
+\bibcite{busca}{4}
+\bibcite{deft}{5}
+\bibcite{fasttracktr}{6}
+\bibcite{mot20}{7}
+\bibcite{strongsort}{8}
+\bibcite{tcbtrack}{9}
+\bibcite{augfpn}{10}
+\bibcite{sgt}{11}
+\bibcite{maskrcnn}{12}
+\bibcite{senet}{13}
+\bibcite{fpn}{14}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Comparison with adaptive threshold baselines on MOT17-val.\relax }}{11}{table.caption.27}\protected@file@percent }
+\newlabel{tab:adaptive_baselines}{{8}{11}{Comparison with adaptive threshold baselines on MOT17-val.\relax }{table.caption.27}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Sensitivity to ATL bounds $[\tau _\text  {min}, \tau _\text  {max}]$ on MOT17-val.\relax }}{11}{table.caption.28}\protected@file@percent }
+\newlabel{tab:bounds}{{9}{11}{Sensitivity to ATL bounds $[\tau _\text {min}, \tau _\text {max}]$ on MOT17-val.\relax }{table.caption.28}{}}
+\bibcite{adaptivethresh}{15}
+\bibcite{hota}{16}
+\bibcite{deepocsort}{17}
+\bibcite{mot17}{18}
+\bibcite{lite}{19}
+\bibcite{triplet}{20}
+\bibcite{personpath}{21}
+\bibcite{boosttrack}{22}
+\bibcite{jde}{23}
+\bibcite{deepsort}{24}
+\bibcite{bytetrack}{25}
+\bibcite{fairmot}{26}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Complementarity with recovery methods on MOT17-train.\relax }}{12}{table.caption.31}\protected@file@percent }
+\newlabel{tab:recovery}{{10}{12}{Complementarity with recovery methods on MOT17-train.\relax }{table.caption.31}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Supplementary Material}{13}{section.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Runtime Measurement Clarification}{13}{subsection.A.1.1}\protected@file@percent }
+\newlabel{app:runtime}{{A.1}{13}{Runtime Measurement Clarification}{subsection.A.1.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Detailed timing breakdown (ms/frame). ``ReID-only'' excludes detector forward pass, showing pure tracking overhead for methods that can use pre-computed detections.\relax }}{13}{table.caption.33}\protected@file@percent }
+\newlabel{tab:speed_detailed}{{11}{13}{Detailed timing breakdown (ms/frame). ``ReID-only'' excludes detector forward pass, showing pure tracking overhead for methods that can use pre-computed detections.\relax }{table.caption.33}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Training Data Splits and Protocol}{13}{subsection.A.1.2}\protected@file@percent }
+\newlabel{app:splits}{{A.2}{13}{Training Data Splits and Protocol}{subsection.A.1.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Complete training protocol for all modules.\relax }}{13}{table.caption.34}\protected@file@percent }
+\newlabel{tab:training_protocol}{{12}{13}{Complete training protocol for all modules.\relax }{table.caption.34}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}RoIAlign vs. Simpler Pooling Ablation}{14}{subsection.A.1.3}\protected@file@percent }
+\newlabel{app:roialign}{{A.3}{14}{RoIAlign vs. Simpler Pooling Ablation}{subsection.A.1.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Pooling method ablation on MOT17-train. All use 3-layer fusion with instance-adaptive attention.\relax }}{14}{table.caption.35}\protected@file@percent }
+\newlabel{tab:pooling}{{13}{14}{Pooling method ablation on MOT17-train. All use 3-layer fusion with instance-adaptive attention.\relax }{table.caption.35}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Public Detection Protocol Compliance}{14}{subsection.A.1.4}\protected@file@percent }
+\newlabel{app:compliance}{{A.4}{14}{Public Detection Protocol Compliance}{subsection.A.1.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}ATL Supervision Alternatives}{15}{subsection.A.1.5}\protected@file@percent }
+\newlabel{app:atl_supervision}{{A.5}{15}{ATL Supervision Alternatives}{subsection.A.1.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces ATL supervision ablation on MOT17-val.\relax }}{15}{table.caption.36}\protected@file@percent }
+\newlabel{tab:atl_supervision}{{14}{15}{ATL supervision ablation on MOT17-val.\relax }{table.caption.36}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}Input Resolution Clarification}{15}{subsection.A.1.6}\protected@file@percent }
+\newlabel{app:resolution}{{A.6}{15}{Input Resolution Clarification}{subsection.A.1.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.7}Tracking-Only Runtime (Standard Reporting)}{16}{subsection.A.1.7}\protected@file@percent }
+\newlabel{app:tracking_only}{{A.7}{16}{Tracking-Only Runtime (Standard Reporting)}{subsection.A.1.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Tracking-only runtime (ms/frame) excluding detector, for methods that can operate with pre-computed detections. *LITE methods cannot operate without detector pass.\relax }}{16}{table.caption.37}\protected@file@percent }
+\newlabel{tab:tracking_only}{{15}{16}{Tracking-only runtime (ms/frame) excluding detector, for methods that can operate with pre-computed detections. *LITE methods cannot operate without detector pass.\relax }{table.caption.37}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.8}Soft RoI Selection Comparison}{16}{subsection.A.1.8}\protected@file@percent }
+\newlabel{app:soft_roi}{{A.8}{16}{Soft RoI Selection Comparison}{subsection.A.1.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Multi-scale aggregation strategies on MOT17-train.\relax }}{17}{table.caption.38}\protected@file@percent }
+\newlabel{tab:soft_roi}{{16}{17}{Multi-scale aggregation strategies on MOT17-train.\relax }{table.caption.38}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces ATL smoothing ablation on MOT17-val. $\beta $=EMA coefficient.\relax }}{17}{table.caption.39}\protected@file@percent }
+\newlabel{tab:ema_ablation}{{17}{17}{ATL smoothing ablation on MOT17-val. $\beta $=EMA coefficient.\relax }{table.caption.39}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.9}ATL Temporal Stability Analysis}{17}{subsection.A.1.9}\protected@file@percent }
+\newlabel{app:temporal}{{A.9}{17}{ATL Temporal Stability Analysis}{subsection.A.1.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.10}ATL Detector Calibration Sensitivity}{17}{subsection.A.1.10}\protected@file@percent }
+\newlabel{app:calibration}{{A.10}{17}{ATL Detector Calibration Sensitivity}{subsection.A.1.10}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces ATL transfer across YOLOv8 variants on MOT17-val. ATL trained on YOLOv8m.\relax }}{17}{table.caption.40}\protected@file@percent }
+\newlabel{tab:detector_transfer}{{18}{17}{ATL transfer across YOLOv8 variants on MOT17-val. ATL trained on YOLOv8m.\relax }{table.caption.40}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.11}Preliminary DanceTrack Results}{18}{subsection.A.1.11}\protected@file@percent }
+\newlabel{app:dancetrack}{{A.11}{18}{Preliminary DanceTrack Results}{subsection.A.1.11}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces Preliminary results on DanceTrack-val (appearance-ambiguous scenario).\relax }}{18}{table.caption.41}\protected@file@percent }
+\newlabel{tab:dancetrack}{{19}{18}{Preliminary results on DanceTrack-val (appearance-ambiguous scenario).\relax }{table.caption.41}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.12}Architectural Details}{18}{subsection.A.1.12}\protected@file@percent }
+\newlabel{app:architecture}{{A.12}{18}{Architectural Details}{subsection.A.1.12}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces MSFP fusion head architectural details.\relax }}{18}{table.caption.42}\protected@file@percent }
+\newlabel{tab:arch_details}{{20}{18}{MSFP fusion head architectural details.\relax }{table.caption.42}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.13}ATL Cross-Dataset Transfer}{19}{subsection.A.1.13}\protected@file@percent }
+\newlabel{app:transfer}{{A.13}{19}{ATL Cross-Dataset Transfer}{subsection.A.1.13}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces ATL cross-dataset transfer. ``MOT17$\rightarrow $MOT20'' means ATL trained on MOT17-train, tested on MOT20-val.\relax }}{19}{table.caption.43}\protected@file@percent }
+\newlabel{tab:atl_transfer}{{21}{19}{ATL cross-dataset transfer. ``MOT17$\rightarrow $MOT20'' means ATL trained on MOT17-train, tested on MOT20-val.\relax }{table.caption.43}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.14}Detector Family Generalization}{19}{subsection.A.1.14}\protected@file@percent }
+\newlabel{app:detectors}{{A.14}{19}{Detector Family Generalization}{subsection.A.1.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces MSFP-Track with different detector backbones on MOT17-val. Fusion trained on YOLOv8m features.\relax }}{19}{table.caption.44}\protected@file@percent }
+\newlabel{tab:detector_families}{{22}{19}{MSFP-Track with different detector backbones on MOT17-val. Fusion trained on YOLOv8m features.\relax }{table.caption.44}{}}
+\citation{boosttrack}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.15}Comparison with Tracklet-Level Thresholding}{20}{subsection.A.1.15}\protected@file@percent }
+\newlabel{app:boosttrack}{{A.15}{20}{Comparison with Tracklet-Level Thresholding}{subsection.A.1.15}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces ATL vs tracklet-level thresholding on MOT17-val.\relax }}{20}{table.caption.45}\protected@file@percent }
+\newlabel{tab:boosttrack}{{23}{20}{ATL vs tracklet-level thresholding on MOT17-val.\relax }{table.caption.45}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.16}Standard Runtime Reporting (Community Norms)}{20}{subsection.A.1.16}\protected@file@percent }
+\newlabel{app:standard_runtime}{{A.16}{20}{Standard Runtime Reporting (Community Norms)}{subsection.A.1.16}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.17}Speed-Accuracy Plot Clarification}{20}{subsection.A.1.17}\protected@file@percent }
+\newlabel{app:figure}{{A.17}{20}{Speed-Accuracy Plot Clarification}{subsection.A.1.17}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Dual runtime reporting: (A) Standard public-detection protocol (no detector for baselines), (B) Unified protocol (detector for all). All on RTX 3090.\relax }}{21}{table.caption.46}\protected@file@percent }
+\newlabel{tab:dual_runtime}{{24}{21}{Dual runtime reporting: (A) Standard public-detection protocol (no detector for baselines), (B) Unified protocol (detector for all). All on RTX 3090.\relax }{table.caption.46}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces ROC curves comparing ReID discriminability. Metrics computed on MOT17-02/04/09 training sequences (Sec.\nobreakspace  {}\ref  {sec:reid_metrics}). Multi-layer fusion improves AUC over single-layer LITE.\relax }}{22}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:roc}{{3}{22}{ROC curves comparing ReID discriminability. Metrics computed on MOT17-02/04/09 training sequences (Sec.~\ref {sec:reid_metrics}). Multi-layer fusion improves AUC over single-layer LITE.\relax }{figure.caption.16}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces ATL threshold adaptation over time. Left: MOT17-02 (sparse scene) predicts higher thresholds ($\approx $0.22). Right: MOT20-01 (crowded scene) predicts lower thresholds ($\approx $0.08). EMA smoothing prevents frame-to-frame oscillations.\relax }}{23}{figure.caption.22}\protected@file@percent }
+\newlabel{fig:atl_adaptation}{{4}{23}{ATL threshold adaptation over time. Left: MOT17-02 (sparse scene) predicts higher thresholds ($\approx $0.22). Right: MOT20-01 (crowded scene) predicts lower thresholds ($\approx $0.08). EMA smoothing prevents frame-to-frame oscillations.\relax }{figure.caption.22}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Speed vs accuracy trade-off on MOT17. MSFP-Track achieves the best balance, outperforming both motion-only trackers and separate ReID approaches.\relax }}{23}{figure.caption.26}\protected@file@percent }
+\newlabel{fig:tradeoff}{{5}{23}{Speed vs accuracy trade-off on MOT17. MSFP-Track achieves the best balance, outperforming both motion-only trackers and separate ReID approaches.\relax }{figure.caption.26}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Similarity score distributions. MSFP-Track achieves clearer separation between positive (same ID) and negative (different ID) pairs.\relax }}{24}{figure.caption.29}\protected@file@percent }
+\newlabel{fig:distributions}{{6}{24}{Similarity score distributions. MSFP-Track achieves clearer separation between positive (same ID) and negative (different ID) pairs.\relax }{figure.caption.29}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces t-SNE visualization of MSFP-Track embeddings on MOT17-02. Features cluster well by identity.\relax }}{24}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:tsne}{{7}{24}{t-SNE visualization of MSFP-Track embeddings on MOT17-02. Features cluster well by identity.\relax }{figure.caption.30}{}}
+\gdef \@abspage@last{24}

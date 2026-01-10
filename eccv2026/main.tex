@@ -330,6 +330,44 @@ Tables~\ref{tab:mot17} and~\ref{tab:mot20} show results on MOT17 and MOT20 test 
 
 \textbf{Comparison with JDE methods:} JDE and FairMOT use private detections (trained detector), making direct comparison difficult. With their custom detectors, FairMOT achieves higher MOTA but comparable HOTA to MSFP-Track. MSFP-Track requires no detector retraining and works with any pretrained detector.
 
+\subsection{Qualitative Results}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/tracking_sequence.pdf}
+\caption{\textbf{Tracking sequence visualization.} Example frames from MOT17-02 showing consistent track IDs across frames. Colors indicate unique identities maintained through motion and occlusion.}
+\label{fig:tracking_sequence}
+\end{figure*}
+
+Figure~\ref{fig:tracking_sequence} shows example tracking results from MOT17-02. MSFP-Track maintains consistent identities across frames, even as pedestrians cross paths and experience partial occlusions.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/reid_matching.pdf}
+\caption{\textbf{ReID feature matching.} Visualization of appearance-based matching: (a) query detection, (b) gallery of candidates, (c) cosine similarity scores. MSFP features provide discriminative embeddings for correct association.}
+\label{fig:reid_matching}
+\end{figure}
+
+Figure~\ref{fig:reid_matching} illustrates the ReID matching process. Given a query detection from frame $t-1$, MSFP-Track computes cosine similarities with candidate detections in frame $t$. The multi-scale features provide discriminative embeddings that correctly identify the same pedestrian.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/occlusion_handling.pdf}
+\caption{\textbf{Occlusion handling.} MSFP-Track maintains identity through occlusion: (left) pedestrian visible, (middle) occluded by another person, (right) re-identified after occlusion. Multi-scale features capture both fine-grained details and semantic context for robust re-association.}
+\label{fig:occlusion_handling}
+\end{figure}
+
+Figure~\ref{fig:occlusion_handling} demonstrates occlusion handling. When a pedestrian becomes partially or fully occluded, the Kalman filter provides motion prediction while MSFP features enable correct re-association upon reappearance.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/baseline_comparison.pdf}
+\caption{\textbf{Comparison with baseline.} (Top) Single-layer LITE baseline with identity switch after occlusion. (Bottom) MSFP-Track correctly maintains identity. Multi-scale fusion improves robustness.}
+\label{fig:baseline_comparison}
+\end{figure}
+
+Figure~\ref{fig:baseline_comparison} compares MSFP-Track against the single-layer baseline. In challenging scenarios with similar-appearing pedestrians, the multi-scale features provide additional discriminative information that prevents identity switches.
+
 \subsection{Ablation Studies}
 
 \subsubsection{Feature Fusion Strategy}

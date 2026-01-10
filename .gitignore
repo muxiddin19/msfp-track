@@ -67,3 +67,6 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# ECCV Paper (excluded during blind review)
+eccv2026/

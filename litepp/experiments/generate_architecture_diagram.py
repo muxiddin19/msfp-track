@@ -149,14 +149,14 @@ def draw_feature_map(ax, x, y, width, height, channels, label, color):
 
 def create_architecture_diagram():
     """Create the main architecture diagram."""
-    fig, ax = plt.subplots(1, 1, figsize=(14, 7))
+    fig, ax = plt.subplots(1, 1, figsize=(14, 7.5))
     ax.set_xlim(-0.5, 14.5)
-    ax.set_ylim(-1, 6)
+    ax.set_ylim(-1.2, 6)
     ax.set_aspect('equal')
     ax.axis('off')
 
     # Title
-    ax.text(7, 5.7, 'LITE++ Architecture', ha='center', va='center',
+    ax.text(7, 5.7, 'MSFP-Track Architecture', ha='center', va='center',
             fontsize=14, fontweight='bold', color=COLORS['text'])
 
     # =====================
@@ -284,10 +284,10 @@ def create_architecture_diagram():
     draw_arrow(ax, (feat_x + 0.2, layer14_y), (fusion_x - 0.75, fusion_y - 0.7),
                connectionstyle='arc3,rad=0.15')
 
-    # Attention weights annotation
-    ax.text(8.0, 4.2, 'α = softmax(Wα · [f⁴; f⁹; f¹⁴])', ha='center', va='center',
+    # Attention weights annotation (positioned above fusion box)
+    ax.text(8.0, 4.5, 'α = softmax(Wα · [f⁴; f⁹; f¹⁴])', ha='center', va='center',
             fontsize=7, color=COLORS['text'], style='italic',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor='none'))
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='#cccccc', linewidth=0.5))
 
     # =====================
     # 7. Output Features
@@ -334,10 +334,10 @@ def create_architecture_diagram():
     ax.text(6.5, 0.8, 'GAP(F¹⁴)', ha='center', va='center',
             fontsize=7, color=COLORS['text'], style='italic')
 
-    # EMA annotation
-    ax.text(atl_x + 1.5, atl_y, 'τₜ = β·τₜ₋₁ + (1-β)·τᵣₐᵥ', ha='left', va='center',
+    # EMA annotation (positioned below ATL box)
+    ax.text(atl_x, atl_y - 0.75, 'τₜ = β·τₜ₋₁ + (1-β)·τᵣₐᵥ', ha='center', va='center',
             fontsize=7, color=COLORS['text'], style='italic',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor='none'))
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='#cccccc', linewidth=0.5))
 
     # Threshold output
     thresh_x = 11.5
@@ -388,7 +388,7 @@ def create_architecture_diagram():
     # =====================
     # Legend
     # =====================
-    legend_y = -0.3
+    legend_y = -0.6
     legend_items = [
         ('Multi-Scale Features', [COLORS['layer4'], COLORS['layer9'], COLORS['layer14']]),
         ('RoIAlign Pooling', COLORS['roialign']),
@@ -396,22 +396,22 @@ def create_architecture_diagram():
         ('Threshold Learning', COLORS['atl']),
     ]
 
-    legend_x = 2.0
+    legend_x = 1.5
     for i, (label, color) in enumerate(legend_items):
-        x = legend_x + i * 3.2
+        x = legend_x + i * 3.3
         if isinstance(color, list):
             for j, c in enumerate(color):
                 box = Rectangle((x - 0.3 + j*0.25, legend_y - 0.1), 0.2, 0.2,
                                facecolor=c, edgecolor=COLORS['box_edge'], linewidth=1)
                 ax.add_patch(box)
             ax.text(x + 0.6, legend_y, label, ha='left', va='center',
-                   fontsize=7, color=COLORS['text'])
+                   fontsize=8, color=COLORS['text'])
         else:
             box = Rectangle((x - 0.15, legend_y - 0.1), 0.3, 0.2,
                            facecolor=color, edgecolor=COLORS['box_edge'], linewidth=1)
             ax.add_patch(box)
             ax.text(x + 0.25, legend_y, label, ha='left', va='center',
-                   fontsize=7, color=COLORS['text'])
+                   fontsize=8, color=COLORS['text'])
 
     return fig, ax
 
